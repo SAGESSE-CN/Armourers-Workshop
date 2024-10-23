@@ -73,11 +73,10 @@ public class SkinDocumentImporter {
     }
 
     private boolean isEmpty(SkinPart part) {
-        var cubeTotal = part.getCubeData().getCubeTotal();
-        if (cubeTotal != 0) {
+        if (!part.getGeometries().isEmpty()) {
             return false;
         }
-        for (var child : part.getParts()) {
+        for (var child : part.getChildren()) {
             if (!isEmpty(child)) {
                 return false;
             }

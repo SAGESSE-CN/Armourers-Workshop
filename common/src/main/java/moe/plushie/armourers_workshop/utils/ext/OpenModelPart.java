@@ -133,7 +133,7 @@ public class OpenModelPart {
     }
 
     private void compile(IPoseStack.Pose pose, IVertexConsumer vertexConsumer, int light, int overlay, int color) {
-        for (Cube cube : cubes) {
+        for (var cube : cubes) {
             cube.compile(pose, vertexConsumer, light, overlay, color);
         }
     }

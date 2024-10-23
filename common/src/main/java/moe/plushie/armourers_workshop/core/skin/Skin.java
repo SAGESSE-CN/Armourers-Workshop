@@ -12,6 +12,7 @@ import moe.plushie.armourers_workshop.core.texture.SkinPaintData;
 import moe.plushie.armourers_workshop.core.texture.SkinPreviewData;
 import moe.plushie.armourers_workshop.utils.ObjectUtils;
 import moe.plushie.armourers_workshop.utils.ThreadUtils;
+import moe.plushie.armourers_workshop.utils.math.Rectangle3f;
 import moe.plushie.armourers_workshop.utils.math.Rectangle3i;
 import net.minecraft.core.BlockPos;
 import org.jetbrains.annotations.Nullable;
@@ -36,7 +37,7 @@ public class Skin implements ISkin {
     private final SkinPreviewData previewData;
     private final Object blobs;
 
-    private Map<BlockPos, Rectangle3i> blockBounds;
+    private Map<BlockPos, Rectangle3f> blockBounds;
 
     protected Skin(int id, int version, ISkinType type, SkinProperties properties, SkinSettings settings, SkinPaintData paintData, SkinPreviewData previewData, List<SkinAnimation> skinAnimations, List<SkinPart> skinParts, Object blobs) {
         this.id = id;
@@ -63,7 +64,7 @@ public class Skin implements ISkin {
         return properties;
     }
 
-    public Map<BlockPos, Rectangle3i> getBlockBounds() {
+    public Map<BlockPos, Rectangle3f> getBlockBounds() {
         if (blockBounds != null) {
             return blockBounds;
         }
@@ -72,7 +73,7 @@ public class Skin implements ISkin {
             return blockBounds;
         }
         var collisionBox = settings.getCollisionBox();
-        blockBounds.put(BlockPos.ZERO, Rectangle3i.ZERO);
+        blockBounds.put(BlockPos.ZERO, Rectangle3f.ZERO);
         if (collisionBox != null) {
             for (var rect : collisionBox) {
                 var rect1 = new Rectangle3i(rect);
@@ -85,7 +86,7 @@ public class Skin implements ISkin {
                 int tw = rect1.getWidth();
                 int th = rect1.getHeight();
                 int td = rect1.getDepth();
-                blockBounds.put(new BlockPos(bx, by, bz), new Rectangle3i(-tx, -ty, tz, -tw, -th, td));
+                blockBounds.put(new BlockPos(bx, by, bz), new Rectangle3f(-tx, -ty, tz, -tw, -th, td));
             }
             return blockBounds;
         }

@@ -1,6 +1,7 @@
 package moe.plushie.armourers_workshop.core.skin.transformer.blockbench;
 
 import io.netty.buffer.Unpooled;
+import moe.plushie.armourers_workshop.api.common.ITextureKey;
 import moe.plushie.armourers_workshop.api.common.ITextureProvider;
 import moe.plushie.armourers_workshop.core.data.transform.SkinItemTransforms;
 import moe.plushie.armourers_workshop.core.data.transform.SkinTransform;
@@ -11,7 +12,8 @@ import moe.plushie.armourers_workshop.core.skin.animation.SkinAnimation;
 import moe.plushie.armourers_workshop.core.skin.animation.SkinAnimationFunction;
 import moe.plushie.armourers_workshop.core.skin.animation.SkinAnimationLoop;
 import moe.plushie.armourers_workshop.core.skin.animation.SkinAnimationValue;
-import moe.plushie.armourers_workshop.core.skin.cube.impl.SkinCubesV2;
+import moe.plushie.armourers_workshop.core.skin.geometry.SkinGeometryVertex;
+import moe.plushie.armourers_workshop.core.skin.geometry.collection.SkinGeometrySetV2;
 import moe.plushie.armourers_workshop.core.skin.molang.MolangVirtualMachine;
 import moe.plushie.armourers_workshop.core.skin.part.SkinPart;
 import moe.plushie.armourers_workshop.core.skin.part.SkinPartTypes;
@@ -20,12 +22,14 @@ import moe.plushie.armourers_workshop.core.skin.serializer.SkinSerializer;
 import moe.plushie.armourers_workshop.core.texture.TextureAnimation;
 import moe.plushie.armourers_workshop.core.texture.TextureBox;
 import moe.plushie.armourers_workshop.core.texture.TextureData;
+import moe.plushie.armourers_workshop.core.texture.TextureKey;
 import moe.plushie.armourers_workshop.core.texture.TextureOptions;
 import moe.plushie.armourers_workshop.core.texture.TextureProperties;
 import moe.plushie.armourers_workshop.init.ModLog;
 import moe.plushie.armourers_workshop.utils.MathUtils;
 import moe.plushie.armourers_workshop.utils.ObjectUtils;
 import moe.plushie.armourers_workshop.utils.math.OpenPoseStack;
+import moe.plushie.armourers_workshop.utils.math.OpenVoxelShape;
 import moe.plushie.armourers_workshop.utils.math.Rectangle2f;
 import moe.plushie.armourers_workshop.utils.math.Rectangle3f;
 import moe.plushie.armourers_workshop.utils.math.Size2f;
@@ -76,10 +80,15 @@ public class BlockBenchExporter {
 
         // search all used texture by the bone tree.
         var usedTextureIds = new HashSet<Integer>();
-        ObjectUtils.eachTree(Collections.singleton(rootBone), it -> it.children, it -> it.cubes.forEach(cube -> {
-            usedTextureIds.add(cube.uv.getDefaultTextureId());
-            cube.uv.forEachTextures((dir, textureId) -> usedTextureIds.add(textureId));
-        }));
+        ObjectUtils.eachTree(Collections.singleton(rootBone), it -> it.children, it -> {
+            it.cubes.forEach(cube -> {
+                usedTextureIds.add(cube.uv.getDefaultTextureId());
+                cube.uv.forEachTextures((dir, textureId) -> usedTextureIds.add(textureId));
+            });
+            it.meshes.forEach(mesh -> mesh.faces.forEach(face -> {
+                usedTextureIds.add(face.textureId);
+            }));
+        });
 
         // load the all used textures into texture set.
         var textureSet = new TextureSet(pack.getResolution(), pack.getTextures(), usedTextureIds);
@@ -98,7 +107,7 @@ public class BlockBenchExporter {
 
         // build the skin.
         var builder = new Skin.Builder(SkinTypes.ADVANCED);
-        builder.parts(rootPart.getParts());
+        builder.parts(rootPart.getChildren());
         builder.settings(settings);
         builder.properties(properties);
         builder.animations(animations);
@@ -109,29 +118,29 @@ public class BlockBenchExporter {
     protected SkinPart exportRootPart(Bone bone, TextureSet textureSet) {
         // move all ungroup cubes to the new part.
         var rootPart = exportPart(bone, textureSet);
-        if (!rootPart.getCubeData().isEmpty()) {
+        if (!rootPart.getGeometries().isEmpty()) {
             var builder = new SkinPart.Builder(SkinPartTypes.ADVANCED);
-            builder.cubes(rootPart.getCubeData());
+            builder.geometries(rootPart.getGeometries());
             rootPart.addPart(builder.build());
         }
         return rootPart;
     }
 
     protected SkinPart exportPart(Bone bone, TextureSet textureSet) {
-        var cubes = new SkinCubesV2();
+        var geometries = new SkinGeometrySetV2();
         var children = new ArrayList<SkinPart>();
 
         bone.children.forEach(it -> children.add(exportPart(it, textureSet)));
 
-        bone.cubes.forEach(it -> cubes.addBox(exportCube(it, textureSet)));
-        //bone.meshes.forEach(it -> cubes.addBox(exportMesh(it, textureSet)));
+        bone.cubes.forEach(it -> geometries.addBox(exportCube(it, textureSet)));
+        bone.meshes.forEach(it -> geometries.addMesh(exportMesh(it, textureSet)));
         bone.locators.forEach(it -> children.add(exportLocator(it)));
 
         var builder = new SkinPart.Builder(SkinPartTypes.ADVANCED);
         builder.name(bone.name);
         builder.transform(SkinTransform.create(bone.origin, bone.rotation, Vector3f.ONE, bone.pivot, Vector3f.ZERO));
         builder.children(children);
-        builder.cubes(cubes);
+        builder.geometries(geometries);
         return builder.build();
     }
 
@@ -142,7 +151,7 @@ public class BlockBenchExporter {
         return builder.build();
     }
 
-    protected SkinCubesV2.Box exportCube(Cube cube, TextureSet texture) {
+    protected SkinGeometrySetV2.Box exportCube(Cube cube, TextureSet texture) {
         float x = cube.origin.getX();
         float y = cube.origin.getY();
         float z = cube.origin.getZ();
@@ -162,11 +171,28 @@ public class BlockBenchExporter {
 
         var rect = new Rectangle3f(x, y, z, w, h, d).inflate(inflate);
         var transform = SkinTransform.create(Vector3f.ZERO, cube.rotation, Vector3f.ONE, cube.pivot, Vector3f.ZERO);
-        return new SkinCubesV2.Box(rect, transform, skyBox);
+        return new SkinGeometrySetV2.Box(rect, transform, skyBox);
     }
 
-    protected SkinCubesV2.Mesh exportMesh(Mesh mesh, TextureSet texture) {
-        return null;
+    protected SkinGeometrySetV2.Mesh exportMesh(Mesh mesh, TextureSet texture) {
+        var vertices = new ArrayList<SkinGeometryVertex>();
+        var transform = SkinTransform.create(mesh.origin, mesh.rotation, Vector3f.ONE, Vector3f.ZERO, Vector3f.ZERO);
+        var textureKeys = new ITextureKey[1];
+        mesh.faces.forEach(it -> {
+            // ignore all not use texture face.
+            var textureKey = texture.read(Vector2f.ZERO, it);
+            if (textureKey == null) {
+                return;
+            }
+            it.vertices.forEach(it2 -> {
+                var position = it2.position;
+                var normal = it2.normal;
+                vertices.add(new SkinGeometryVertex(0, 0, position, normal, it2.textureCoords));
+            });
+            // a mesh only supports binding one texture.
+            textureKeys[0] = textureKey;
+        });
+        return new SkinGeometrySetV2.Mesh(transform, textureKeys[0], vertices);
     }
 
     protected SkinItemTransforms exportItemTransforms(Map<String, BlockBenchDisplay> transforms) {
@@ -332,16 +358,155 @@ public class BlockBenchExporter {
     protected static class Mesh {
 
         public Vector3f origin;
+        public Vector3f pivot;
         public Vector3f rotation;
+
+        public final List<MeshFace> faces = new ArrayList<>();
 
         public Mesh(BlockBenchMesh mesh) {
             this.origin = mesh.getOrigin();
+            this.pivot = mesh.getOrigin();
             this.rotation = mesh.getRotation();
+            for (var entry : mesh.getFaces().entrySet()) {
+                faces.add(new MeshFace(entry.getValue(), mesh));
+            }
         }
 
         public void transform(OpenPoseStack poseStack) {
             origin = origin.transforming(poseStack.last().pose());
+            pivot = pivot.transforming(poseStack.last().pose());
             rotation = rotation.transforming(poseStack.last().normal());
+
+            // apply a removed translation matrix.
+            var fixedPoseStack = poseStack.copy();
+            fixedPoseStack.last().pose().setTranslation(0, 0, 0);
+            faces.forEach(it -> it.transform(fixedPoseStack));
+        }
+    }
+
+    // https://github.com/JannisX11/blockbench/blob/2662eff12323c58af0b13a3f685ab3baf75b74c8/js/outliner/mesh.js
+    protected static class MeshFace {
+
+        public int textureId;
+
+        public ArrayList<MeshVertex> vertices = new ArrayList<>();
+
+        public MeshFace(BlockBenchMeshFace face, BlockBenchMesh mesh) {
+            this.textureId = face.getTextureId();
+            for (var vertexId : face.getVertices()) {
+                var position = mesh.getVertices().get(vertexId);
+                var textureCoords = face.getUV().get(vertexId);
+                vertices.add(new MeshVertex(position, Vector3f.ZERO, textureCoords));
+            }
+            if (vertices.size() < 3) {
+                throw new RuntimeException("error.bb.loadModel.wrongVertexCount");
+            }
+            fixVertices();
+            fixNormals();
+        }
+
+
+        public void transform(OpenPoseStack poseStack) {
+            vertices.forEach(it -> it.transform(poseStack));
+        }
+
+        private void fixNormals() {
+            var iterator = vertices.iterator();
+            while (iterator.hasNext()) {
+                var v0 = iterator.next();
+                var v1 = iterator.next();
+                var v2 = iterator.next();
+                var a = v1.position.subtracting(v0.position);
+                var b = v2.position.subtracting(v0.position);
+                var normal = a.crossing(b).normalizing();
+                v0.normal = normal;
+                v1.normal = normal;
+                v2.normal = normal;
+            }
+        }
+
+        private void fixVertices() {
+            if (vertices.size() < 4) {
+                return;
+            }
+            // https://github.com/JannisX11/blockbench/blob/2662eff12323c58af0b13a3f685ab3baf75b74c8/js/outliner/mesh.js#L184
+            var sortedVertices = new ArrayList<MeshVertex>();
+            if (_test(vertices.get(1), vertices.get(2), vertices.get(0), vertices.get(3))) {
+                sortedVertices.add(vertices.get(2));
+                sortedVertices.add(vertices.get(0));
+                sortedVertices.add(vertices.get(1));
+                sortedVertices.add(vertices.get(3));
+            } else if (_test(vertices.get(0), vertices.get(1), vertices.get(2), vertices.get(3))) {
+                sortedVertices.add(vertices.get(0));
+                sortedVertices.add(vertices.get(2));
+                sortedVertices.add(vertices.get(1));
+                sortedVertices.add(vertices.get(3));
+            } else {
+                sortedVertices.addAll(vertices);
+            }
+
+            var newVertices = new ArrayList<MeshVertex>();
+            // triangle 1
+            newVertices.add(sortedVertices.get(0).copy()); // lt
+            newVertices.add(sortedVertices.get(1).copy()); // lb
+            newVertices.add(sortedVertices.get(2).copy()); // rb
+            // triangle 2
+            newVertices.add(sortedVertices.get(2).copy()); // rb
+            newVertices.add(sortedVertices.get(3).copy()); // rt
+            newVertices.add(sortedVertices.get(0).copy()); // lt
+            // end
+            vertices = newVertices;
+        }
+
+        // Test if point "check" is on the other side of the line between "base1" and "base2", compared to "top"
+        private boolean _test(MeshVertex base1, MeshVertex base2, MeshVertex top, MeshVertex check) {
+            // Construct a plane with coplanar points "base1" and "base2" with a normal towards "top"
+            var normal = _line_closestPointToPoint(base1.position, base2.position, top.position);
+            normal = normal.subtracting(top.position);
+            float distance = _plane_distanceToPoint(normal, base2.position, check.position);
+            return distance > 0;
+        }
+
+        // normal = Line3(base1, base2).closestPointToPoint(top, false)
+        private Vector3f _line_closestPointToPoint(Vector3f start, Vector3f end, Vector3f point) {
+            var delta = end.subtracting(start);
+            // Line3.closestPointToPointParameter
+            var startEnd2 = delta.dot(delta);
+            var startEnd_startP = delta.dot(point.subtracting(start));
+            float t = startEnd_startP / startEnd2;
+
+            // Line3.closestPointToPoint
+            return delta.scaling(t).adding(start);
+        }
+
+        // distance = Plane(normal, base2).distanceToPoint(check)
+        private float _plane_distanceToPoint(Vector3f normal, Vector3f point, Vector3f check) {
+            // Plane.setFromNormalAndCoplanarPoint
+            float constant = -point.dot(normal);
+            // Plane.distanceToPoint
+            return normal.dot(check) + constant;
+        }
+    }
+
+    protected static class MeshVertex {
+
+        public Vector3f position;
+        public Vector3f normal;
+        public Vector2f textureCoords;
+
+        public MeshVertex(Vector3f position, Vector3f normal, Vector2f textureCoords) {
+            this.position = position;
+            this.normal = normal;
+            this.textureCoords = textureCoords;
+        }
+
+        public void transform(OpenPoseStack poseStack) {
+            position = position.transforming(poseStack.last().pose());
+            normal = normal.transforming(poseStack.last().normal());
+        }
+
+        public MeshVertex copy() {
+            return new MeshVertex(position, normal, textureCoords);
         }
     }
 
@@ -529,6 +694,15 @@ public class BlockBenchExporter {
             });
             return skyBox;
         }
+
+        public TextureKey read(Vector2f pos, MeshFace meshFace) {
+            var textureData = allTexture.get(meshFace.textureId);
+            if (textureData != null) {
+                return new TextureKey(pos.getX(), pos.getY(), 0, 0, textureData);
+            }
+            return null;
+        }
+
 
         protected TextureData getTextureData(TextureUV uv) {
             return allTexture.get(uv.getDefaultTextureId());

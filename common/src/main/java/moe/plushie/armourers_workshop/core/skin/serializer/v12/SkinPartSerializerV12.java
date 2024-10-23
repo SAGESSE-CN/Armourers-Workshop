@@ -2,7 +2,7 @@ package moe.plushie.armourers_workshop.core.skin.serializer.v12;
 
 import moe.plushie.armourers_workshop.api.skin.ISkinPartType;
 import moe.plushie.armourers_workshop.core.skin.SkinMarker;
-import moe.plushie.armourers_workshop.core.skin.cube.impl.SkinCubesV1;
+import moe.plushie.armourers_workshop.core.skin.geometry.collection.SkinGeometrySetV1;
 import moe.plushie.armourers_workshop.core.skin.exception.InvalidCubeTypeException;
 import moe.plushie.armourers_workshop.core.skin.part.SkinPart;
 import moe.plushie.armourers_workshop.core.skin.part.SkinPartTypes;
@@ -69,7 +69,7 @@ public final class SkinPartSerializerV12 {
             }
         }
 
-        var cubeData = SkinCubesV1.readFromStream(stream, version, partType);
+        var geometries = SkinGeometrySetV1.readFromStream(stream, version, partType);
         markerBlocks = new ArrayList<>();
         if (version > 8) {
             int markerCount = stream.readInt();
@@ -80,13 +80,13 @@ public final class SkinPartSerializerV12 {
 
         var builder = new SkinPart.Builder(partType);
         builder.markers(markerBlocks);
-        builder.cubes(cubeData);
+        builder.geometries(geometries);
         return builder.build();
     }
 
     public void saveSkinPart(SkinPart skinPart, IOutputStream stream) throws IOException {
         stream.writeString(skinPart.getType().getRegistryName().toString());
-        SkinCubesV1.writeToStream(skinPart.getCubeData(), stream);
+        SkinGeometrySetV1.writeToStream(skinPart.getGeometries(), stream);
         stream.writeInt(skinPart.getMarkers().size());
         for (SkinMarker marker : skinPart.getMarkers()) {
             marker.writeToStream(stream);

@@ -13,8 +13,8 @@ public class OpenRay {
     }
 
     public boolean intersects(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
-        // https://tavianator.com/2011/ray_box.html
-        // https://tavianator.com/2015/ray_box_nan.html
+        // https://web.archive.org/web/20240901111623/https://tavianator.com/2011/ray_box.html
+        // https://web.archive.org/web/20240718070324/https://tavianator.com/2015/ray_box_nan.html
         float ix = 1.0f / direction.getX();
         float iy = 1.0f / direction.getY();
         float iz = 1.0f / direction.getZ();

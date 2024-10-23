@@ -3,7 +3,6 @@ package moe.plushie.armourers_workshop.core.skin.document;
 import moe.plushie.armourers_workshop.core.skin.SkinLoader;
 import moe.plushie.armourers_workshop.core.skin.part.SkinPart;
 import moe.plushie.armourers_workshop.utils.MathUtils;
-import moe.plushie.armourers_workshop.utils.math.OpenBoundingBox;
 import moe.plushie.armourers_workshop.utils.math.OpenPoseStack;
 import moe.plushie.armourers_workshop.utils.math.OpenTransformedBoundingBox;
 import moe.plushie.armourers_workshop.utils.math.Rectangle3i;
@@ -80,15 +79,15 @@ public class SkinDocumentCollider {
         var result = new ArrayList<OpenTransformedBoundingBox>();
         poseStack.pushPose();
         part.getTransform().apply(poseStack);
-        part.getCubeData().forEach(cube -> {
+        part.getGeometries().forEach(geometry -> {
             poseStack.pushPose();
-            cube.getTransform().apply(poseStack);
-            var aabb = new OpenBoundingBox(cube.getShape());
+            geometry.getTransform().apply(poseStack);
+            var aabb = geometry.getShape().aabb();
             var tbb = new OpenTransformedBoundingBox(poseStack.last().pose().copy(), aabb);
             result.add(tbb);
             poseStack.popPose();
         });
-        part.getParts().forEach(child -> {
+        part.getChildren().forEach(child -> {
             result.addAll(generateCollisionBox(child, poseStack));
         });
         poseStack.popPose();

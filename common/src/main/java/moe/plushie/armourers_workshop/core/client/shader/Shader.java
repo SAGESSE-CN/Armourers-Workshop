@@ -4,7 +4,6 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import moe.plushie.armourers_workshop.core.client.other.SkinRenderState;
 import moe.plushie.armourers_workshop.core.client.other.VertexArrayObject;
 import moe.plushie.armourers_workshop.core.client.other.VertexIndexObject;
-import moe.plushie.armourers_workshop.core.skin.molang.function.generic.Mod;
 import moe.plushie.armourers_workshop.init.ModDebugger;
 import moe.plushie.armourers_workshop.utils.ColorUtils;
 import moe.plushie.armourers_workshop.utils.RenderSystem;
@@ -95,10 +94,12 @@ public abstract class Shader {
     }
 
     protected void drawElements(ShaderVertexObject vertexObject, VertexArrayObject arrayObject, VertexIndexObject indexObject, int count) {
-        // convert quad vertexes to triangle vertexes.
-        count += count / 2;
         arrayObject.bind();
-        GL15.glDrawElements(GL15.GL_TRIANGLES, count, indexObject.type().asGLType, 0);
+        if (indexObject != null) {
+            GL15.glDrawElements(GL15.GL_TRIANGLES, indexObject.stride(count), indexObject.type(), 0);
+        } else {
+            GL15.glDrawArrays(GL15.GL_TRIANGLES, 0, count);
+        }
     }
 
     protected int getLastProgramId() {
@@ -115,7 +116,7 @@ public abstract class Shader {
         return overlayMatrices.computeIfAbsent(object.getOverlay(), overlay -> {
             var u = overlay & 0xffff;
             var v = (overlay >> 16) & 0xffff;
-            OpenMatrix4f newValue = OpenMatrix4f.createScaleMatrix(0, 0, 0);
+            var newValue = OpenMatrix4f.createScaleMatrix(0, 0, 0);
             newValue.m03 = u;
             newValue.m13 = v;
             return newValue;
@@ -132,7 +133,7 @@ public abstract class Shader {
         return lightmapMatrices.computeIfAbsent(object.getLightmap(), lightmap -> {
             var u = lightmap & 0xffff;
             var v = (lightmap >> 16) & 0xffff;
-            OpenMatrix4f newValue = OpenMatrix4f.createScaleMatrix(0, 0, 0);
+            var newValue = OpenMatrix4f.createScaleMatrix(0, 0, 0);
             newValue.m03 = u;
             newValue.m13 = v;
             return newValue;

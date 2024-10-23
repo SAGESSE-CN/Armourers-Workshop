@@ -21,17 +21,15 @@ public class VertexIndexObject {
     private int capacity;
     private IndexType type = IndexType.BYTE;
 
-    public VertexIndexObject(int i, int j, IndexGenerator generator) {
-        this.vertexStride = i;
-        this.indexStride = j;
+    public VertexIndexObject(int vertexStride, int indexStride, IndexGenerator generator) {
+        this.vertexStride = vertexStride;
+        this.indexStride = indexStride;
         this.generator = generator;
         this.id = GL15.glGenBuffers();
     }
 
-    public void ensureCapacity(int i) {
-        if (capacity < i) {
-            capacity = i;
-        }
+    public static void unbind() {
+        GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
     public void bind() {
@@ -39,8 +37,10 @@ public class VertexIndexObject {
         uploadStorageIfNeeded(capacity);
     }
 
-    public static void unbind() {
-        GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, 0);
+    public void ensureCapacity(int i) {
+        if (capacity < i) {
+            capacity = i;
+        }
     }
 
     private void uploadStorageIfNeeded(int total) {
@@ -57,7 +57,7 @@ public class VertexIndexObject {
             throw new RuntimeException("Failed to map GL buffer");
         }
         type = indexType;
-        var builder = createBuilder(buffer);
+        var builder = indexType.builder(buffer);
         for (int k = 0; k < total; k += indexStride) {
             generator.accept(builder, k * vertexStride / indexStride);
         }
@@ -65,16 +65,12 @@ public class VertexIndexObject {
         size = total;
     }
 
-    private IntConsumer createBuilder(ByteBuffer buffer) {
-        return switch (type) {
-            case BYTE -> i -> buffer.put((byte) i);
-            case SHORT -> i -> buffer.putShort((short) i);
-            default -> buffer::putInt;
-        };
+    public int stride(int count) {
+        return (count / vertexStride) * indexStride;
     }
 
-    public IndexType type() {
-        return this.type;
+    public int type() {
+        return type.asGLType;
     }
 
     public enum IndexType {
@@ -96,6 +92,14 @@ public class VertexIndexObject {
                 return SHORT;
             }
             return BYTE;
+        }
+
+        public IntConsumer builder(ByteBuffer buffer) {
+            return switch (this) {
+                case BYTE -> i -> buffer.put((byte) i);
+                case SHORT -> i -> buffer.putShort((short) i);
+                default -> buffer::putInt;
+            };
         }
     }
 

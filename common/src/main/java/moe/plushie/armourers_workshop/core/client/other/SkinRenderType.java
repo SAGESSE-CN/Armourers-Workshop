@@ -2,9 +2,12 @@ package moe.plushie.armourers_workshop.core.client.other;
 
 import moe.plushie.armourers_workshop.api.client.IRenderTypeBuilder;
 import moe.plushie.armourers_workshop.api.core.IResourceLocation;
-import moe.plushie.armourers_workshop.api.skin.ISkinCubeType;
+import moe.plushie.armourers_workshop.api.skin.geometry.ISkinGeometryType;
 import moe.plushie.armourers_workshop.compatibility.AbstractRenderType;
+import moe.plushie.armourers_workshop.core.skin.geometry.SkinGeometryTypes;
 import moe.plushie.armourers_workshop.init.ModTextures;
+import moe.plushie.armourers_workshop.utils.DataContainer;
+import moe.plushie.armourers_workshop.utils.DataContainerKey;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.renderer.RenderType;
@@ -13,6 +16,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Environment(EnvType.CLIENT)
 public abstract class SkinRenderType implements IRenderTypeBuilder {
+
+    private static final DataContainerKey<SkinRenderFormat> FORMAT = DataContainerKey.of("format", SkinRenderFormat.class);
+    private static final DataContainerKey<Boolean> USING_INDEX = DataContainerKey.of("usingIndex", Boolean.class, () -> true);
 
     public static final RenderType BLIT_COLOR = _builder(SkinRenderFormat.BLIT_MASK).build("aw_blit_color");
     public static final RenderType BLIT_MASK = _builder(SkinRenderFormat.BLIT_MASK).writeMask(WriteMask.NONE).build("aw_blit_mask");
@@ -37,44 +43,52 @@ public abstract class SkinRenderType implements IRenderTypeBuilder {
     public static final RenderType BLOCK_CUBE = _block(ModTextures.BLOCK_CUBE).build("aw_block_cube");
     public static final RenderType BLOCK_CUBE_GLASS = _block(ModTextures.BLOCK_CUBE_GLASS).transparency(Transparency.TRANSLUCENT).sortOnUpload().build("aw_block_cube_glass");
     public static final RenderType BLOCK_CUBE_GLASS_UNSORTED = _block(ModTextures.BLOCK_CUBE_GLASS).transparency(Transparency.TRANSLUCENT).build("aw_block_cube_glass_unsorted");
-    public static final RenderType BLOCK_EARTH = _builder(SkinRenderFormat.SKIN_FACE_LIGHTING_TRANSLUCENT).texture(ModTextures.EARTH).transparency(Transparency.TRANSLUCENT).target(Target.TRANSLUCENT).cull().build("aw_block_earth");
+    public static final RenderType BLOCK_EARTH = _builder(SkinRenderFormat.SKIN_BLOCK_FACE_LIGHTING_TRANSLUCENT).texture(ModTextures.EARTH).transparency(Transparency.TRANSLUCENT).target(Target.TRANSLUCENT).cull().build("aw_block_earth");
 
-    public static final RenderType FACE_SOLID = _cube(SkinRenderFormat.SKIN_FACE_SOLID).texture(ModTextures.CUBE).build("aw_face_sold");
-    public static final RenderType FACE_LIGHTING = _cube(SkinRenderFormat.SKIN_FACE_LIGHTING).texture(ModTextures.LIGHTING_CUBE).build("aw_lighting_quad_face");
-    public static final RenderType FACE_TRANSLUCENT = _cube(SkinRenderFormat.SKIN_FACE_TRANSLUCENT).texture(ModTextures.CUBE).transparency(Transparency.TRANSLUCENT).target(Target.TRANSLUCENT).build("aw_translucent_quad_face");
-    public static final RenderType FACE_LIGHTING_TRANSLUCENT = _cube(SkinRenderFormat.SKIN_FACE_LIGHTING_TRANSLUCENT).texture(ModTextures.LIGHTING_CUBE).transparency(Transparency.TRANSLUCENT).target(Target.TRANSLUCENT).build("aw_translucent_lighting_quad_face");
+    public static final RenderType BLOCK_FACE_SOLID = _blockFace(SkinRenderFormat.SKIN_BLOCK_FACE_SOLID).texture(ModTextures.CUBE).build("aw_face_sold");
+    public static final RenderType BLOCK_FACE_LIGHTING = _blockFace(SkinRenderFormat.SKIN_BLOCK_FACE_LIGHTING).texture(ModTextures.LIGHTING_CUBE).build("aw_lighting_quad_face");
+    public static final RenderType BLOCK_FACE_TRANSLUCENT = _blockFace(SkinRenderFormat.SKIN_BLOCK_FACE_TRANSLUCENT).texture(ModTextures.CUBE).transparency(Transparency.TRANSLUCENT).target(Target.TRANSLUCENT).build("aw_translucent_quad_face");
+    public static final RenderType BLOCK_FACE_LIGHTING_TRANSLUCENT = _blockFace(SkinRenderFormat.SKIN_BLOCK_FACE_LIGHTING_TRANSLUCENT).texture(ModTextures.LIGHTING_CUBE).transparency(Transparency.TRANSLUCENT).target(Target.TRANSLUCENT).build("aw_translucent_lighting_quad_face");
 
     private static final RenderType LINES = _line(1).build("aw_lines");
     private static final RenderType LINE_STRIP = _builder(SkinRenderFormat.LINE_STRIP).lineWidth(1).build("aw_line_strip");
 
-    private static final ConcurrentHashMap<String, RenderType> FACE_SOLID_VARIANTS = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<String, RenderType> FACE_LIGHTING_VARIANTS = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, RenderType> CUSTOM_FACE_SOLID_VARIANTS = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, RenderType> CUSTOM_FACE_LIGHTING_VARIANTS = new ConcurrentHashMap<>();
 
-    private static final RenderType[] RENDER_ORDERING_FACES = {FACE_SOLID, FACE_LIGHTING, FACE_TRANSLUCENT, FACE_LIGHTING_TRANSLUCENT};
+    private static final RenderType[] RENDER_ORDERING_FACES = {BLOCK_FACE_SOLID, BLOCK_FACE_LIGHTING, BLOCK_FACE_TRANSLUCENT, BLOCK_FACE_LIGHTING_TRANSLUCENT};
 
-    public static RenderType by(ISkinCubeType cubeType) {
-        if (cubeType.isGlass()) {
-            if (cubeType.isGlowing()) {
-                return FACE_LIGHTING_TRANSLUCENT;
-            } else {
-                return FACE_TRANSLUCENT;
-            }
+    public static RenderType by(ISkinGeometryType geometryType) {
+        if (geometryType == SkinGeometryTypes.BLOCK_GLASS) {
+            return BLOCK_FACE_TRANSLUCENT;
         }
-        if (cubeType.isGlowing()) {
-            return FACE_LIGHTING;
+        if (geometryType == SkinGeometryTypes.BLOCK_GLASS_GLOWING) {
+            return BLOCK_FACE_LIGHTING_TRANSLUCENT;
+        }
+        if (geometryType == SkinGeometryTypes.BLOCK_GLOWING) {
+            return BLOCK_FACE_LIGHTING;
+        }
+        return BLOCK_FACE_SOLID;
+    }
+
+    public static RenderType cubeFace(IResourceLocation texture, boolean isGrowing) {
+        if (isGrowing) {
+            var key = String.format("aw_cube_lighting/%s", texture.getPath());
+            return CUSTOM_FACE_LIGHTING_VARIANTS.computeIfAbsent(key, k -> _customFace(SkinRenderFormat.SKIN_CUBE_FACE_LIGHTING).texture(texture).build(k));
         } else {
-            return FACE_SOLID;
+            var key = String.format("aw_cube_solid/%s", texture.getPath());
+            return CUSTOM_FACE_SOLID_VARIANTS.computeIfAbsent(key, k -> _customFace(SkinRenderFormat.SKIN_CUBE_FACE).texture(texture).build(k));
         }
     }
 
-    public static RenderType customSolidFace(IResourceLocation texture) {
-        var key = String.format("aw_custom_solid/%s", texture.getPath());
-        return FACE_SOLID_VARIANTS.computeIfAbsent(key, k -> _builder(SkinRenderFormat.SKIN_FACE_TEXTURE).texture(texture).transparency(Transparency.TRANSLUCENT).target(Target.TRANSLUCENT).outline().build(k));
-    }
-
-    public static RenderType customLightingFace(IResourceLocation texture) {
-        var key = String.format("aw_custom_lighting/%s", texture.getPath());
-        return FACE_LIGHTING_VARIANTS.computeIfAbsent(key, k -> _builder(SkinRenderFormat.SKIN_FACE_LIGHTING_TEXTURE).texture(texture).transparency(Transparency.TRANSLUCENT).target(Target.TRANSLUCENT).outline().build(k));
+    public static RenderType meshFace(IResourceLocation texture, boolean isGrowing) {
+        if (isGrowing) {
+            var key = String.format("aw_mesh_lighting/%s", texture.getPath());
+            return CUSTOM_FACE_LIGHTING_VARIANTS.computeIfAbsent(key, k -> _customFace(SkinRenderFormat.SKIN_MESH_FACE_LIGHTING).texture(texture).property(USING_INDEX, false).build(k));
+        } else {
+            var key = String.format("aw_mesh_solid/%s", texture.getPath());
+            return CUSTOM_FACE_SOLID_VARIANTS.computeIfAbsent(key, k -> _customFace(SkinRenderFormat.SKIN_MESH_FACE).texture(texture).property(USING_INDEX, false).build(k));
+        }
     }
 
     public static RenderType lines() {
@@ -97,7 +111,7 @@ public abstract class SkinRenderType implements IRenderTypeBuilder {
         return _entity(SkinRenderFormat.ENTITY_TRANSLUCENT, texture).cull().transparency(Transparency.TRANSLUCENT).build("aw_player_translucent");
     }
 
-    public static int getOrdering(RenderType renderType) {
+    public static int getPriority(RenderType renderType) {
         int index = 1;
         for (var target : SkinRenderType.RENDER_ORDERING_FACES) {
             if (target == renderType) {
@@ -106,11 +120,11 @@ public abstract class SkinRenderType implements IRenderTypeBuilder {
             index += 1;
         }
         index += 1;
-        if (FACE_SOLID_VARIANTS.containsValue(renderType)) {
+        if (CUSTOM_FACE_SOLID_VARIANTS.containsValue(renderType)) {
             return index;
         }
         index += 1;
-        if (FACE_LIGHTING_VARIANTS.containsValue(renderType)) {
+        if (CUSTOM_FACE_LIGHTING_VARIANTS.containsValue(renderType)) {
             return index;
         }
         return 0;
@@ -118,26 +132,30 @@ public abstract class SkinRenderType implements IRenderTypeBuilder {
 
     public static boolean isGrowing(RenderType renderType) {
         // do fast hitting.
-        if (renderType == FACE_LIGHTING || renderType == FACE_LIGHTING_TRANSLUCENT) {
+        if (renderType == BLOCK_FACE_LIGHTING || renderType == BLOCK_FACE_LIGHTING_TRANSLUCENT) {
             return true;
         }
         // do fast missing.
-        if (renderType == FACE_SOLID || renderType == FACE_TRANSLUCENT) {
+        if (renderType == BLOCK_FACE_SOLID || renderType == BLOCK_FACE_TRANSLUCENT) {
             return false;
         }
-        return FACE_LIGHTING_VARIANTS.containsValue(renderType);
+        return CUSTOM_FACE_LIGHTING_VARIANTS.containsValue(renderType);
     }
 
     public static boolean isTranslucent(RenderType renderType) {
         // do fast hitting.
-        if (renderType == FACE_TRANSLUCENT || renderType == FACE_LIGHTING_TRANSLUCENT) {
+        if (renderType == BLOCK_FACE_TRANSLUCENT || renderType == BLOCK_FACE_LIGHTING_TRANSLUCENT) {
             return true;
         }
         // do fast missing.
-        if (renderType == FACE_SOLID || renderType == FACE_LIGHTING) {
+        if (renderType == BLOCK_FACE_SOLID || renderType == BLOCK_FACE_LIGHTING) {
             return false;
         }
         return false;
+    }
+
+    public static boolean isUsingIndex(RenderType renderType) {
+        return DataContainer.getValue(renderType, USING_INDEX);
     }
 
     private static IRenderTypeBuilder _entity(SkinRenderFormat format, IResourceLocation texture) {
@@ -148,8 +166,12 @@ public abstract class SkinRenderType implements IRenderTypeBuilder {
         return _builder(SkinRenderFormat.ENTITY_ALPHA).texture(texture).overlay().lightmap();
     }
 
-    private static IRenderTypeBuilder _cube(SkinRenderFormat format) {
+    private static IRenderTypeBuilder _blockFace(SkinRenderFormat format) {
         return _builder(format).outline();
+    }
+
+    private static IRenderTypeBuilder _customFace(SkinRenderFormat format) {
+        return _builder(format).transparency(Transparency.TRANSLUCENT).target(Target.TRANSLUCENT).outline();
     }
 
     private static IRenderTypeBuilder _texture(IResourceLocation texture) {
@@ -169,6 +191,6 @@ public abstract class SkinRenderType implements IRenderTypeBuilder {
     }
 
     private static IRenderTypeBuilder _builder(SkinRenderFormat format) {
-        return AbstractRenderType.builder(format);
+        return AbstractRenderType.builder(format).property(FORMAT, format);
     }
 }

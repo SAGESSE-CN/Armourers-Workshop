@@ -1,18 +1,18 @@
 package moe.plushie.armourers_workshop.core.skin.exporter;
 
+import com.google.common.collect.Lists;
 import moe.plushie.armourers_workshop.api.skin.ISkin;
-import moe.plushie.armourers_workshop.api.skin.ISkinCubeType;
 import moe.plushie.armourers_workshop.api.skin.ISkinExporter;
+import moe.plushie.armourers_workshop.api.skin.geometry.ISkinGeometryType;
 import moe.plushie.armourers_workshop.core.data.transform.SkinPartTransform;
 import moe.plushie.armourers_workshop.core.data.transform.SkinTransform;
 import moe.plushie.armourers_workshop.core.skin.Skin;
-import moe.plushie.armourers_workshop.core.skin.cube.SkinCubeTypes;
-import moe.plushie.armourers_workshop.core.skin.face.SkinCubeFace;
-import moe.plushie.armourers_workshop.core.skin.face.SkinCuller;
-import moe.plushie.armourers_workshop.core.skin.painting.SkinPaintTypes;
+import moe.plushie.armourers_workshop.core.skin.geometry.SkinGeometryTypes;
+import moe.plushie.armourers_workshop.core.skin.geometry.cube.SkinCubeFace;
+import moe.plushie.armourers_workshop.core.skin.geometry.cube.SkinCubeFaceCuller;
 import moe.plushie.armourers_workshop.core.skin.part.SkinPart;
 import moe.plushie.armourers_workshop.init.ModLog;
-import moe.plushie.armourers_workshop.utils.SkinUtils;
+import moe.plushie.armourers_workshop.utils.ObjectUtils;
 import moe.plushie.armourers_workshop.utils.math.OpenPoseStack;
 import moe.plushie.armourers_workshop.utils.math.Rectangle3i;
 import moe.plushie.armourers_workshop.utils.math.Vector3f;
@@ -58,8 +58,8 @@ public class SkinExporterWavefrontObj implements ISkinExporter {
         int totalFaces = 0;
         for (var skinPart : skin.getParts()) {
             var task = new Task(skin, skinPart);
-            for (var face : task.skinFaces) {
-                if (face.getPaintType() == SkinPaintTypes.NONE) {
+            for (var face : task.cubeFaces) {
+                if (!face.isVisible()) {
                     continue;
                 }
                 int color = face.getColor().getRGB() | 0xff000000;
@@ -68,7 +68,7 @@ public class SkinExporterWavefrontObj implements ISkinExporter {
                 }
             }
             tasks.add(task);
-            totalFaces += task.skinFaces.size();
+            totalFaces += task.cubeFaces.size();
         }
         ModLog.debug("create task with {} total faces.", totalFaces);
 
@@ -100,7 +100,7 @@ public class SkinExporterWavefrontObj implements ISkinExporter {
             poseStack.translate(pos.getX(), pos.getY(), pos.getZ());
             // apply the marker rotation and offset.
             transform.apply(poseStack);
-            exportPart(poseStack, task.skinFaces, part, task.skin, os, textureBuilder, partIndex++);
+            exportPart(poseStack, task.cubeFaces, part, task.skin, os, textureBuilder, partIndex++);
         }
 
         os.flush();
@@ -114,15 +114,15 @@ public class SkinExporterWavefrontObj implements ISkinExporter {
     private void exportPart(OpenPoseStack poseStack, ArrayList<SkinCubeFace> allFaces, SkinPart skinPart, Skin skin, OutputStreamWriter os, TextureBuilder texture, int partIndex) throws IOException {
         // user maybe need apply some effects for the glass or glowing blocks,
         // so we need split the glass and glowing block into separate layers.
-        var faces = new HashMap<ISkinCubeType, ArrayList<SkinCubeFace>>();
+        var faces = new HashMap<ISkinGeometryType, ArrayList<SkinCubeFace>>();
         for (var face : allFaces) {
-            if (face.getPaintType() != SkinPaintTypes.NONE) {
+            if (face.isVisible()) {
                 faces.computeIfAbsent(face.getType(), k -> new ArrayList<>()).add(face);
             }
         }
         String[] layerNames = {"opaque", "glowing", "transparent", "transparent-glowing"};
-        for (int i = 0; i < SkinCubeTypes.getTotalCubes(); ++i) {
-            var faces1 = faces.get(SkinCubeTypes.byId(i));
+        for (int i = 0; i < SkinGeometryTypes.getTotalCubes(); ++i) {
+            var faces1 = faces.get(SkinGeometryTypes.byId(i));
             if (faces1 != null && !faces1.isEmpty()) {
                 exportLayer(poseStack, faces1, skinPart, skin, os, texture, layerNames[i], partIndex);
             }
@@ -139,14 +139,14 @@ public class SkinExporterWavefrontObj implements ISkinExporter {
 
         // Export vertex list.
         for (var face : faces) {
-            var shape = face.getShape();
+            var shape = face.getBoundingBox();
             var x = shape.getX();
             var y = shape.getY();
             var z = shape.getZ();
             var w = shape.getWidth();
             var h = shape.getHeight();
             var d = shape.getDepth();
-            var vertexes = SkinUtils.getRenderVertexes(face.getDirection());
+            var vertexes = SkinCubeFace.getBaseVertices(face.getDirection());
             for (var i = 0; i < 4; ++i) {
                 writeVert(poseStack, os, x + vertexes[i][0] * w, y + vertexes[i][1] * h, z + vertexes[i][2] * d);
             }
@@ -167,7 +167,7 @@ public class SkinExporterWavefrontObj implements ISkinExporter {
         }
 
         for (var face : faces) {
-            var vertexes = SkinUtils.getRenderVertexes(face.getDirection());
+            var vertexes = SkinCubeFace.getBaseVertices(face.getDirection());
             writeNormal(poseStack, os, vertexes[4][0], vertexes[4][1], vertexes[4][2]);
         }
 
@@ -231,14 +231,15 @@ public class SkinExporterWavefrontObj implements ISkinExporter {
     private static class Task {
         final Skin skin;
         final SkinPart skinPart;
-        final ArrayList<SkinCubeFace> skinFaces;
+        final ArrayList<SkinCubeFace> cubeFaces;
 
         Task(Skin skin, SkinPart skinPart) {
-            var cubeData = skinPart.getCubeData();
-            var bounds = new Rectangle3i(cubeData.getShape().bounds());
+            var geometries = skinPart.getGeometries();
+            var bounds = new Rectangle3i(geometries.getShape().bounds());
             this.skin = skin;
             this.skinPart = skinPart;
-            this.skinFaces = SkinCuller.cullFaces(cubeData, bounds);
+            var skinFaces = SkinCubeFaceCuller.cullFaces(geometries, bounds);
+            this.cubeFaces = Lists.newArrayList(ObjectUtils.collect(skinFaces, SkinCubeFace.class));
         }
     }
 

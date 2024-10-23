@@ -1,6 +1,5 @@
 package moe.plushie.armourers_workshop.core.data;
 
-import moe.plushie.armourers_workshop.api.data.IAssociatedObjectProvider;
 import moe.plushie.armourers_workshop.core.capability.SkinWardrobe;
 import moe.plushie.armourers_workshop.core.capability.SkinWardrobeJS;
 import moe.plushie.armourers_workshop.core.client.other.BlockEntityRenderData;
@@ -8,6 +7,7 @@ import moe.plushie.armourers_workshop.core.client.other.EntityRenderData;
 import moe.plushie.armourers_workshop.init.ModCapabilities;
 import moe.plushie.armourers_workshop.init.environment.EnvironmentExecutor;
 import moe.plushie.armourers_workshop.init.environment.EnvironmentType;
+import moe.plushie.armourers_workshop.utils.DataContainer;
 import moe.plushie.armourers_workshop.utils.LazyOptional;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -19,11 +19,11 @@ import java.util.Optional;
 public class EntityDataStorage {
 
     public static EntityImpl of(Entity entity) {
-        return IAssociatedObjectProvider.of(entity, EntityImpl::new);
+        return DataContainer.lazy(entity, EntityImpl::new);
     }
 
     public static BlockEntityImpl of(BlockEntity entity) {
-        return IAssociatedObjectProvider.of(entity, BlockEntityImpl::new);
+        return DataContainer.lazy(entity, BlockEntityImpl::new);
     }
 
     public static class EntityImpl {

@@ -1,12 +1,15 @@
 package moe.plushie.armourers_workshop.core.client.texture;
 
+import moe.plushie.armourers_workshop.api.common.ITextureProperties;
 import moe.plushie.armourers_workshop.api.common.ITextureProvider;
 import moe.plushie.armourers_workshop.api.core.IResourceLocation;
-import moe.plushie.armourers_workshop.api.data.IAssociatedObjectProvider;
+import moe.plushie.armourers_workshop.api.skin.geometry.ISkinGeometryType;
 import moe.plushie.armourers_workshop.core.client.other.SkinRenderType;
 import moe.plushie.armourers_workshop.core.data.cache.ReferenceCounted;
+import moe.plushie.armourers_workshop.core.skin.geometry.SkinGeometryTypes;
 import moe.plushie.armourers_workshop.core.texture.TextureAnimation;
 import moe.plushie.armourers_workshop.init.ModConstants;
+import moe.plushie.armourers_workshop.utils.DataContainer;
 import moe.plushie.armourers_workshop.utils.RenderSystem;
 import moe.plushie.armourers_workshop.utils.SkinFileUtils;
 import net.fabricmc.api.EnvType;
@@ -28,7 +31,7 @@ public class TextureManager {
     private static final AtomicInteger ID = new AtomicInteger(0);
     private static final TextureManager INSTANCE = new TextureManager();
 
-    private final IdentityHashMap<ITextureProvider, Entry> textures = new IdentityHashMap<>();
+    private final IdentityHashMap<Object, Entry> textures = new IdentityHashMap<>();
 
     public static TextureManager getInstance() {
         return INSTANCE;
@@ -39,7 +42,7 @@ public class TextureManager {
     }
 
     public synchronized void stop() {
-        textures.values().forEach(it -> it.bind(null));
+        textures.values().forEach(Entry::unbind);
         textures.clear();
     }
 
@@ -57,34 +60,37 @@ public class TextureManager {
         }
     }
 
-    public synchronized RenderType register(ITextureProvider provider) {
+    public synchronized RenderType register(ITextureProvider provider, ISkinGeometryType type) {
         var entry = textures.get(provider);
         if (entry == null) {
             entry = new Entry(provider);
             textures.put(provider, entry);
         }
-        return entry.getRenderType();
+        return entry.getRenderType(type);
     }
 
     public static class Entry extends ReferenceCounted {
 
         private final IResourceLocation location;
+        private final ITextureProperties properties;
 
-        private final RenderType renderType;
-        private final Map<IResourceLocation, ByteBuffer> textureBuffers;
         private final TextureAnimationController animationController;
 
+        private final Map<IResourceLocation, ByteBuffer> textureBuffers;
+
+        private RenderType cubeRenderType;
+        private RenderType meshRenderType;
+
         public Entry(ITextureProvider provider) {
-            this.location = resolveResourceLocation(provider);
-            this.renderType = resolveRenderType(location, provider);
+            this.location = ModConstants.key("textures/dynamic/" + ID.getAndIncrement() + ".png");
+            this.properties = provider.getProperties();
             this.textureBuffers = resolveTextureBuffers(location, provider);
             this.animationController = new TextureAnimationController((TextureAnimation) provider.getAnimation());
-            this.bind(this);
         }
 
         @Nullable
         public static TextureManager.Entry of(RenderType renderType) {
-            return IAssociatedObjectProvider.get(renderType, null);
+            return DataContainer.get(renderType, null);
         }
 
         @Override
@@ -103,12 +109,24 @@ public class TextureManager {
             });
         }
 
-        public IResourceLocation getLocation() {
-            return location;
+        public RenderType getRenderType(ISkinGeometryType type) {
+            if (type == SkinGeometryTypes.MESH) {
+                if (meshRenderType == null) {
+                    meshRenderType = SkinRenderType.meshFace(location, properties.isEmissive());
+                    DataContainer.set(meshRenderType, this);
+                }
+                return meshRenderType;
+            } else {
+                if (cubeRenderType == null) {
+                    cubeRenderType = SkinRenderType.cubeFace(location, properties.isEmissive());
+                    DataContainer.set(cubeRenderType, this);
+                }
+                return cubeRenderType;
+            }
         }
 
-        public RenderType getRenderType() {
-            return renderType;
+        public IResourceLocation getLocation() {
+            return location;
         }
 
         public TextureAnimationController getAnimationController() {
@@ -120,21 +138,13 @@ public class TextureManager {
             return location.toString();
         }
 
-        protected void bind(Entry newValue) {
-            IAssociatedObjectProvider.set(renderType, newValue);
-        }
-
-        private IResourceLocation resolveResourceLocation(ITextureProvider provider) {
-            var path = "textures/dynamic/" + ID.getAndIncrement();
-            return ModConstants.key(path + ".png");
-        }
-
-        private RenderType resolveRenderType(IResourceLocation location, ITextureProvider provider) {
-            var properties = provider.getProperties();
-            if (properties.isEmissive()) {
-                return SkinRenderType.customLightingFace(location);
+        protected void unbind() {
+            if (cubeRenderType != null) {
+                DataContainer.set(cubeRenderType, null);
             }
-            return SkinRenderType.customSolidFace(location);
+            if (meshRenderType != null) {
+                DataContainer.set(meshRenderType, null);
+            }
         }
 
         private Map<IResourceLocation, ByteBuffer> resolveTextureBuffers(IResourceLocation location, ITextureProvider provider) {

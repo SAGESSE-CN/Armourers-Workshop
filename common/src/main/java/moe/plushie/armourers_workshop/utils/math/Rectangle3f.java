@@ -7,7 +7,6 @@ import moe.plushie.armourers_workshop.utils.ObjectUtils;
 import net.minecraft.core.Position;
 import net.minecraft.world.phys.AABB;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -48,6 +47,21 @@ public class Rectangle3f implements IRectangle3f {
 
     public Rectangle3f(List<Float> list) {
         this(list[0], list[1], list[2], list[3], list[4], list[5]);
+    }
+
+    public void union(IRectangle3f rect) {
+        float x1 = Math.min(getMinX(), rect.getMinX());
+        float y1 = Math.min(getMinY(), rect.getMinY());
+        float z1 = Math.min(getMinZ(), rect.getMinZ());
+        float x2 = Math.max(getMaxX(), rect.getMaxX());
+        float y2 = Math.max(getMaxY(), rect.getMaxY());
+        float z2 = Math.max(getMaxZ(), rect.getMaxZ());
+        x = x1;
+        y = y1;
+        z = z1;
+        width = x2 - x1;
+        height = y2 - y1;
+        depth = z2 - z1;
     }
 
     public float getX() {

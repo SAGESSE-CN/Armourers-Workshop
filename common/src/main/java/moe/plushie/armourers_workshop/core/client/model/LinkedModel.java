@@ -4,7 +4,7 @@ import moe.plushie.armourers_workshop.api.client.model.IModel;
 import moe.plushie.armourers_workshop.api.client.model.IModelBabyPose;
 import moe.plushie.armourers_workshop.api.client.model.IModelPart;
 import moe.plushie.armourers_workshop.api.data.IAssociatedContainerKey;
-import moe.plushie.armourers_workshop.utils.DataStorage;
+import moe.plushie.armourers_workshop.utils.DataContainer;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -15,7 +15,7 @@ import java.util.HashSet;
 public class LinkedModel implements IModel {
 
     private final IModel parent;
-    private final DataStorage storage = new DataStorage();
+    private final DataContainer storage = new DataContainer();
     private final HashMap<String, LinkedModelPart> namedParts = new HashMap<>();
     private final ArrayList<LinkedModelPart> allParts = new ArrayList<>();
 
@@ -97,11 +97,11 @@ public class LinkedModel implements IModel {
     }
 
     @Override
-    public <T> void setAssociatedObject(T value, IAssociatedContainerKey<T> key) {
+    public <T> void setAssociatedObject(IAssociatedContainerKey<T> key, T value) {
         if (parent != null) {
-            parent.setAssociatedObject(value, key);
+            parent.setAssociatedObject(key, value);
         } else {
-            storage.setAssociatedObject(value, key);
+            storage.setAssociatedObject(key, value);
         }
     }
 }

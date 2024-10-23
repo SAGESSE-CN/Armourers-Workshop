@@ -128,10 +128,10 @@ public class SkinDocumentExporter {
                     builder.name(node.getName());
                 }
                 builder.transform(part.getTransform());
-                builder.cubes(part.getCubeData());
+                builder.geometries(part.getGeometries());
                 builder.markers(loadSkinMarkers(node));
                 var newPart = builder.build();
-                part.getParts().forEach(newPart::addPart);
+                part.getChildren().forEach(newPart::addPart);
                 allParts.add(newPart);
                 continue;
             }

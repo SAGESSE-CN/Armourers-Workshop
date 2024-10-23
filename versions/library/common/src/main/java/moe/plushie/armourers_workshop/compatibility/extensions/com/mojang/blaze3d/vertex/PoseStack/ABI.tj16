@@ -2,9 +2,9 @@ package moe.plushie.armourers_workshop.compatibility.extensions.com.mojang.blaze
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import moe.plushie.armourers_workshop.api.annotation.Available;
-import moe.plushie.armourers_workshop.api.data.IAssociatedObjectProvider;
 import moe.plushie.armourers_workshop.api.math.IQuaternionf;
 import moe.plushie.armourers_workshop.compatibility.client.AbstractPoseStack;
+import moe.plushie.armourers_workshop.utils.DataContainer;
 
 import manifold.ext.rt.api.Extension;
 import manifold.ext.rt.api.This;
@@ -20,7 +20,7 @@ public class ABI {
     public static void setIdentity(@This PoseStack poseStack) {
         poseStack.last().pose().setIdentity();
         poseStack.last().normal().setIdentity();
-        AbstractPoseStack.Pose pose = IAssociatedObjectProvider.get(poseStack.last(), null);
+        var pose = DataContainer.get(poseStack.last(), (AbstractPoseStack.Pose) null);
         if (pose != null) {
             pose.setProperties(0);
         }

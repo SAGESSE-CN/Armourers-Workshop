@@ -73,10 +73,11 @@ public class SkinBlockPlaceContext extends BlockPlaceContext {
         var parts = new ArrayList<Part>();
         var blockPosList = new ArrayList<BlockPos>();
         skin.getBlockBounds().forEach((pos, shape) -> {
+            var rect = new Rectangle3i(shape);
             if (pos.equals(BlockPos.ZERO)) {
-                parts.add(new ParentPart(pos, shape, blockPosList, descriptor, skin));
+                parts.add(new ParentPart(pos, rect, blockPosList, descriptor, skin));
             } else {
-                parts.add(new Part(pos, shape));
+                parts.add(new Part(pos, rect));
             }
         });
         this.skin = descriptor;

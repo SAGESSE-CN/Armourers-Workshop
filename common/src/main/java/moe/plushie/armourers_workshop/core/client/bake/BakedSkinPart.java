@@ -22,7 +22,7 @@ public class BakedSkinPart {
     private final int id = ThreadUtils.nextId(BakedSkinPart.class);
 
     private final SkinPart part;
-    private final BakedCubeQuads quads;
+    private final BakedGeometryQuads quads;
     private final SkinPartTransform transform;
     private final ColorDescriptor descriptor;
     private final ArrayList<BakedSkinPart> children = new ArrayList<>();
@@ -30,7 +30,7 @@ public class BakedSkinPart {
     private float renderPolygonOffset;
     private boolean shouldRender = true;
 
-    public BakedSkinPart(SkinPart part, SkinPartTransform transform, BakedCubeQuads quads) {
+    public BakedSkinPart(SkinPart part, SkinPartTransform transform, BakedGeometryQuads quads) {
         this.part = part;
         this.quads = quads;
         this.transform = transform;
@@ -134,7 +134,7 @@ public class BakedSkinPart {
         return part.getProperties();
     }
 
-    public BakedCubeQuads getQuads() {
+    public BakedGeometryQuads getQuads() {
         return quads;
     }
 }

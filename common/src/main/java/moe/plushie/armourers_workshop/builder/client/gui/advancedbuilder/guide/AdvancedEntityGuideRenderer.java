@@ -10,9 +10,9 @@ import moe.plushie.armourers_workshop.core.armature.JointShape;
 import moe.plushie.armourers_workshop.core.client.bake.BakedArmature;
 import moe.plushie.armourers_workshop.core.client.other.SkinRenderType;
 import moe.plushie.armourers_workshop.core.skin.document.SkinDocument;
+import moe.plushie.armourers_workshop.core.skin.geometry.cube.SkinCubeFace;
 import moe.plushie.armourers_workshop.utils.ColorUtils;
 import moe.plushie.armourers_workshop.utils.ShapeTesselator;
-import moe.plushie.armourers_workshop.utils.SkinUtils;
 import moe.plushie.armourers_workshop.utils.ext.OpenResourceLocation;
 import moe.plushie.armourers_workshop.utils.math.Rectangle2f;
 import moe.plushie.armourers_workshop.utils.math.Rectangle3f;
@@ -106,8 +106,8 @@ public abstract class AdvancedEntityGuideRenderer extends AbstractAdvancedGuideR
         float n = texture.getWidth();
         float m = texture.getHeight();
 
-        float[][] uvs = SkinUtils.getRenderUVs(dir);
-        float[][] vertexes = SkinUtils.getRenderVertexes(dir);
+        float[][] uvs = SkinCubeFace.getBaseUVs(dir);
+        float[][] vertexes = SkinCubeFace.getBaseVertices(dir);
         for (int i = 0; i < 4; ++i) {
             builder.vertex(entry, x + w * vertexes[i][0], y + h * vertexes[i][1], z + d * vertexes[i][2])
                     .color(255, 255, 255, 255)

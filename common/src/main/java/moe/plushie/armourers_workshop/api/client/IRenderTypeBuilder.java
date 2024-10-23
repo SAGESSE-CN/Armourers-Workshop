@@ -1,6 +1,7 @@
 package moe.plushie.armourers_workshop.api.client;
 
 import moe.plushie.armourers_workshop.api.core.IResourceLocation;
+import moe.plushie.armourers_workshop.api.data.IAssociatedContainerKey;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.renderer.RenderType;
@@ -43,6 +44,8 @@ public interface IRenderTypeBuilder {
     IRenderTypeBuilder crumbling();
 
     IRenderTypeBuilder sortOnUpload();
+
+    <T> IRenderTypeBuilder property(IAssociatedContainerKey<T> key, T value);
 
     RenderType build(String name);
 

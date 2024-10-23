@@ -16,7 +16,7 @@ public class OpenResourceLocation implements IResourceLocation, Comparable<OpenR
     }
 
     public static OpenResourceLocation create(ResourceLocation location) {
-        OpenResourceLocation newValue = new OpenResourceLocation(location.getNamespace(), location.getPath());
+        var newValue = new OpenResourceLocation(location.getNamespace(), location.getPath());
         newValue.resourceLocation = location;
         return newValue;
     }

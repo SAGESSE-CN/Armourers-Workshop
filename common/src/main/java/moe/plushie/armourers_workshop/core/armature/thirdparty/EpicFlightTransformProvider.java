@@ -1,11 +1,11 @@
 package moe.plushie.armourers_workshop.core.armature.thirdparty;
 
 import moe.plushie.armourers_workshop.api.armature.IJointTransform;
-import moe.plushie.armourers_workshop.utils.DataStorageKey;
+import moe.plushie.armourers_workshop.utils.DataContainerKey;
 
 public interface EpicFlightTransformProvider {
 
-    DataStorageKey<EpicFlightTransformProvider> KEY = DataStorageKey.of("transforms", EpicFlightTransformProvider.class);
+    DataContainerKey<EpicFlightTransformProvider> KEY = DataContainerKey.of("transforms", EpicFlightTransformProvider.class);
 
     IJointTransform apply(String name);
 }

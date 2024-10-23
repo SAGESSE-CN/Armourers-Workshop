@@ -28,54 +28,11 @@ import net.minecraft.world.level.GameRules;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
 
 public final class SkinUtils {
-
-    private static final float[][][] FACE_UVS = new float[][][]{
-            {{1, 0}, {1, 1}, {0, 1}, {0, 0}}, // -y <- down
-            {{0, 0}, {0, 1}, {1, 1}, {1, 0}}, // +y <- up
-            {{0, 0}, {0, 1}, {1, 1}, {1, 0}}, // -z <- north
-            {{0, 0}, {0, 1}, {1, 1}, {1, 0}}, // +z <- south
-            {{0, 0}, {0, 1}, {1, 1}, {1, 0}},
-            {{0, 0}, {0, 1}, {1, 1}, {1, 0}},
-//            {{1, 0}, {1, 1}, {0, 1}, {0, 0}}, // -x <- west
-//            {{1, 0}, {1, 1}, {0, 1}, {0, 0}}, // +x <- east
-    };
-
-    private static final float[][][] FACE_UVS_90 = reorder(FACE_UVS, 3, 0, 1, 2);
-    private static final float[][][] FACE_UVS_180 = reorder(FACE_UVS, 2, 3, 0, 1);
-    private static final float[][][] FACE_UVS_270 = reorder(FACE_UVS, 1, 2, 3, 0);
-
-    private static final float[][][] FACE_VERTEXES = new float[][][]{
-            {{1, 1, 1}, {1, 1, 0}, {0, 1, 0}, {0, 1, 1}, {0, 1, 0}},  // -y <- down
-            {{0, 0, 1}, {0, 0, 0}, {1, 0, 0}, {1, 0, 1}, {0, -1, 0}}, // +y <- up
-            {{0, 0, 0}, {0, 1, 0}, {1, 1, 0}, {1, 0, 0}, {0, 0, -1}}, // -z <- north
-            {{1, 0, 1}, {1, 1, 1}, {0, 1, 1}, {0, 0, 1}, {0, 0, 1}},  // +z <- south
-            {{1, 0, 0}, {1, 1, 0}, {1, 1, 1}, {1, 0, 1}, {1, 0, 0}},  // -x <- west
-            {{0, 0, 1}, {0, 1, 1}, {0, 1, 0}, {0, 0, 0}, {-1, 0, 0}}, // +x <- east
-    };
-
-    public static float[][] getRenderUVs(Direction direction, int rot) {
-        return switch (rot) {
-            case 90 -> FACE_UVS_90[direction.get3DDataValue()];
-            case 180 -> FACE_UVS_180[direction.get3DDataValue()];
-            case 270 -> FACE_UVS_270[direction.get3DDataValue()];
-            default -> FACE_UVS[direction.get3DDataValue()];
-        };
-    }
-
-    public static float[][] getRenderUVs(Direction direction) {
-        return FACE_UVS[direction.get3DDataValue()];
-    }
-
-    public static float[][] getRenderVertexes(Direction direction) {
-        return FACE_VERTEXES[direction.get3DDataValue()];
-    }
 
 //    public static Skin getSkinDetectSide(ItemStack stack, boolean serverSoftLoad, boolean clientRequestSkin) {
 //        SkinDescriptor skinPointer = SkinNBTHelper.getSkinDescriptorFromStack(stack);

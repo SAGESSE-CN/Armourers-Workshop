@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Objects;
 
 @SuppressWarnings("unused")
-public class Vector3f implements IVector3f, Position {
+public class Vector3f implements Comparable<Vector3f>, IVector3f, Position {
 
     public static final int BYTES = Float.BYTES * 3;
 
@@ -178,14 +178,10 @@ public class Vector3f implements IVector3f, Position {
     }
 
     public void normalize() {
-        float f = x * x + y * y + z * z;
-        if (f < 1.0E-5D) {
-            return;
-        }
-        float f1 = MathUtils.fastInvSqrt(f);
-        this.x *= f1;
-        this.y *= f1;
-        this.z *= f1;
+        float value = length();
+        this.x /= value;
+        this.y /= value;
+        this.z /= value;
     }
 
     public void cross(Vector3f pos) {
@@ -334,6 +330,19 @@ public class Vector3f implements IVector3f, Position {
 
     public List<Float> toList() {
         return Lists.newArrayList(x, y, z);
+    }
+
+    @Override
+    public int compareTo(Vector3f v) {
+        int dy = Float.compare(getY(), v.getY());
+        if (dy != 0) {
+            return dy;
+        }
+        int dz = Float.compare(getZ(), v.getZ());
+        if (dz != 0) {
+            return dz;
+        }
+        return Float.compare(getX(), v.getX());
     }
 
     @Override

@@ -61,7 +61,6 @@ public class AbstractShader extends Shader {
 
         object.getBufferObject().bind();
         object.getFormat().setupBufferState(object.getOffset());
-        object.getIndexObject().bind();
 
         // when the outline color required, we need to modify the color attribute by `glColorPointer`.
         if (object.isOutline()) {
@@ -81,7 +80,13 @@ public class AbstractShader extends Shader {
             object.getBufferObject().bind();
         }
 
-        GL15.glDrawElements(GL15.GL_TRIANGLES, count + count / 2, object.getIndexObject().type().asGLType, 0);
+        var indexObject = object.getIndexObject();
+        if (indexObject != null) {
+            indexObject.bind();
+            GL15.glDrawElements(GL15.GL_TRIANGLES, indexObject.stride(count), indexObject.type(), 0);
+        } else {
+            GL15.glDrawArrays(GL15.GL_TRIANGLES, 0, count);
+        }
 
         object.getFormat().clearBufferState();
 

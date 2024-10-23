@@ -150,7 +150,7 @@ public class DocumentImporter {
 
     private void extractToRootPart(SkinPart part, Stack<SkinPart> parent, List<SkinPart> rootParts) {
         // search all child part.
-        var children = new ArrayList<>(part.getParts());
+        var children = new ArrayList<>(part.getChildren());
         for (var child : children) {
             parent.push(part);
             extractToRootPart(child, parent, rootParts);
@@ -169,8 +169,8 @@ public class DocumentImporter {
             var builder = new SkinPart.Builder(entry.getType());
             builder.name(part.getName());
             builder.transform(convertToLocal(part, entry, parent));
-            builder.cubes(part.getCubeData());
-            builder.children(part.getParts());
+            builder.geometries(part.getGeometries());
+            builder.children(part.getChildren());
             rootParts.add(builder.build());
         }
     }
@@ -187,7 +187,7 @@ public class DocumentImporter {
     }
 
     private Vector3f getPackOrigin(BlockBenchPack pack) {
-        // relocation the block model origin to the center(8, 8, 8).
+        // relocation the block model origin to the bottom-center(0, 8, 0).
         if (targetType == SkinTypes.BLOCK) {
             // work in java_block.
             if (pack.getFormat().equals("java_block")) {

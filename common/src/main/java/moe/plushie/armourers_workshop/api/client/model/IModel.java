@@ -1,11 +1,11 @@
 package moe.plushie.armourers_workshop.api.client.model;
 
-import moe.plushie.armourers_workshop.api.data.IAssociatedContainer;
+import moe.plushie.armourers_workshop.api.data.IAssociatedContainerProvider;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 
-public interface IModel extends IAssociatedContainer {
+public interface IModel extends IAssociatedContainerProvider {
 
     @Nullable
     IModelBabyPose getBabyPose();

@@ -5,13 +5,16 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 import moe.plushie.armourers_workshop.api.annotation.Available;
 import moe.plushie.armourers_workshop.api.client.IRenderTypeBuilder;
 import moe.plushie.armourers_workshop.api.core.IResourceLocation;
+import moe.plushie.armourers_workshop.api.data.IAssociatedContainerKey;
 import moe.plushie.armourers_workshop.core.client.other.SkinRenderFormat;
+import moe.plushie.armourers_workshop.utils.DataContainer;
 import moe.plushie.armourers_workshop.utils.RenderSystem;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.renderer.RenderType;
 import org.lwjgl.opengl.GL11;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.OptionalDouble;
@@ -44,13 +47,16 @@ public class AbstractRenderType extends RenderType {
         it.put(SkinRenderFormat.ENTITY_TRANSLUCENT, () -> _builder(DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, RENDERTYPE_ENTITY_TRANSLUCENT_CULL_SHADER));
         it.put(SkinRenderFormat.ENTITY_ALPHA, () -> _builder(DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, RENDERTYPE_ENTITY_ALPHA_SHADER));
 
-        it.put(SkinRenderFormat.SKIN_FACE_SOLID, () -> _builder(DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, RENDERTYPE_ENTITY_SOLID_SHADER).overlay().lightmap());
-        it.put(SkinRenderFormat.SKIN_FACE_TRANSLUCENT, () -> _builder(DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, RENDERTYPE_ENTITY_SOLID_SHADER).overlay().lightmap());
-        it.put(SkinRenderFormat.SKIN_FACE_LIGHTING, () -> _builder(DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, RENDERTYPE_ENTITY_SHADOW_SHADER).overlay().lightmap());
-        it.put(SkinRenderFormat.SKIN_FACE_LIGHTING_TRANSLUCENT, () -> _builder(DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, RENDERTYPE_ENTITY_SHADOW_SHADER).overlay().lightmap());
+        it.put(SkinRenderFormat.SKIN_BLOCK_FACE_SOLID, () -> _builder(DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, RENDERTYPE_ENTITY_SOLID_SHADER).overlay().lightmap());
+        it.put(SkinRenderFormat.SKIN_BLOCK_FACE_TRANSLUCENT, () -> _builder(DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, RENDERTYPE_ENTITY_SOLID_SHADER).overlay().lightmap());
+        it.put(SkinRenderFormat.SKIN_BLOCK_FACE_LIGHTING, () -> _builder(DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, RENDERTYPE_ENTITY_SHADOW_SHADER).overlay().lightmap());
+        it.put(SkinRenderFormat.SKIN_BLOCK_FACE_LIGHTING_TRANSLUCENT, () -> _builder(DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, RENDERTYPE_ENTITY_SHADOW_SHADER).overlay().lightmap());
 
-        it.put(SkinRenderFormat.SKIN_FACE_TEXTURE, () -> _builder(DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, RENDERTYPE_ENTITY_CUTOUT_SHADER).overlay().lightmap());
-        it.put(SkinRenderFormat.SKIN_FACE_LIGHTING_TEXTURE, () -> _builder(DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, RENDERTYPE_ENERGY_SWIRL_SHADER).overlay().lightmap());
+        it.put(SkinRenderFormat.SKIN_CUBE_FACE, () -> _builder(DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, RENDERTYPE_ENTITY_CUTOUT_SHADER).overlay().lightmap());
+        it.put(SkinRenderFormat.SKIN_CUBE_FACE_LIGHTING, () -> _builder(DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, RENDERTYPE_ENERGY_SWIRL_SHADER).overlay().lightmap());
+
+        it.put(SkinRenderFormat.SKIN_MESH_FACE, () -> _builder(DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.TRIANGLES, RENDERTYPE_ENTITY_CUTOUT_SHADER).overlay().lightmap());
+        it.put(SkinRenderFormat.SKIN_MESH_FACE_LIGHTING, () -> _builder(DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.TRIANGLES, RENDERTYPE_ENERGY_SWIRL_SHADER).overlay().lightmap());
     });
 
     public AbstractRenderType(String name, RenderType delegate, boolean affectsCrumbling, boolean sortUpload, Runnable setupRenderState, Runnable clearRenderState) {
@@ -66,7 +72,11 @@ public class AbstractRenderType extends RenderType {
     public static IRenderTypeBuilder builder(SkinRenderFormat format) {
         var provider = MAPPER.get(format);
         if (provider != null) {
-            return provider.get();
+            var builder = provider.get();
+            if (builder instanceof Builder builder1) {
+                builder1.renderFormat = format;
+            }
+            return builder;
         }
         throw new RuntimeException("can't supported render mode");
     }
@@ -123,7 +133,9 @@ public class AbstractRenderType extends RenderType {
         boolean affectsCrumbling = false;
         boolean sortOnUpload = false;
 
+        SkinRenderFormat renderFormat;
         CompositeState.CompositeStateBuilder stateBuilder = CompositeState.builder();
+        ArrayList<Consumer<RenderType>> updater = new ArrayList<>();
 
         final VertexFormat format;
         final VertexFormat.Mode mode;
@@ -247,8 +259,16 @@ public class AbstractRenderType extends RenderType {
         }
 
         @Override
+        public <T> IRenderTypeBuilder property(IAssociatedContainerKey<T> key, T value) {
+            this.updater.add(it -> DataContainer.setValue(it, key, value));
+            return this;
+        }
+
+        @Override
         public RenderType build(String name) {
-            return RenderType.create(name, format, mode, 256, affectsCrumbling, sortOnUpload, stateBuilder.createCompositeState(isOutline));
+            var renderType = RenderType.create(name, format, mode, 256, affectsCrumbling, sortOnUpload, stateBuilder.createCompositeState(isOutline));
+            updater.forEach(it -> it.accept(renderType));
+            return renderType;
         }
 
         public Builder or(Function<CompositeState.CompositeStateBuilder, CompositeState.CompositeStateBuilder> builder) {

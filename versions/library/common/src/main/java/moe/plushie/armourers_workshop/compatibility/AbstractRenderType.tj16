@@ -6,14 +6,17 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 import moe.plushie.armourers_workshop.api.annotation.Available;
 import moe.plushie.armourers_workshop.api.client.IRenderTypeBuilder;
 import moe.plushie.armourers_workshop.api.core.IResourceLocation;
+import moe.plushie.armourers_workshop.api.data.IAssociatedContainerKey;
 import moe.plushie.armourers_workshop.compatibility.client.AbstractPoseStack;
 import moe.plushie.armourers_workshop.core.client.other.SkinRenderFormat;
+import moe.plushie.armourers_workshop.utils.DataContainer;
 import moe.plushie.armourers_workshop.utils.RenderSystem;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.renderer.RenderType;
 import org.lwjgl.opengl.GL11;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.OptionalDouble;
@@ -85,13 +88,16 @@ public class AbstractRenderType extends RenderType {
         it.put(SkinRenderFormat.ENTITY_TRANSLUCENT, () -> _builder(DefaultVertexFormat.NEW_ENTITY, GL11.GL_QUADS, builder -> builder.setAlphaState(DEFAULT_ALPHA).setDiffuseLightingState(DIFFUSE_LIGHTING)));
         it.put(SkinRenderFormat.ENTITY_ALPHA, () -> _builder(DefaultVertexFormat.NEW_ENTITY, GL11.GL_QUADS, builder -> builder.setAlphaState(DEFAULT_ALPHA)));
 
-        it.put(SkinRenderFormat.SKIN_FACE_SOLID, () -> _builder(DefaultVertexFormat.NEW_ENTITY, GL11.GL_QUADS, builder -> builder.setTexturingState(COLORS_OFFSET).setDiffuseLightingState(DIFFUSE_LIGHTING).setLightmapState(LIGHTMAP)));
-        it.put(SkinRenderFormat.SKIN_FACE_TRANSLUCENT, () -> _builder(DefaultVertexFormat.NEW_ENTITY, GL11.GL_QUADS, builder -> builder.setTexturingState(COLORS_OFFSET).setDiffuseLightingState(DIFFUSE_LIGHTING).setLightmapState(LIGHTMAP).setAlphaState(DEFAULT_ALPHA)));
-        it.put(SkinRenderFormat.SKIN_FACE_LIGHTING, () -> _builder(DefaultVertexFormat.NEW_ENTITY, GL11.GL_QUADS, builder -> builder.setTexturingState(COLORS_OFFSET)));
-        it.put(SkinRenderFormat.SKIN_FACE_LIGHTING_TRANSLUCENT, () -> _builder(DefaultVertexFormat.NEW_ENTITY, GL11.GL_QUADS, builder -> builder.setTexturingState(COLORS_OFFSET).setAlphaState(DEFAULT_ALPHA)));
+        it.put(SkinRenderFormat.SKIN_BLOCK_FACE_SOLID, () -> _builder(DefaultVertexFormat.NEW_ENTITY, GL11.GL_QUADS, builder -> builder.setTexturingState(COLORS_OFFSET).setDiffuseLightingState(DIFFUSE_LIGHTING).setLightmapState(LIGHTMAP)));
+        it.put(SkinRenderFormat.SKIN_BLOCK_FACE_TRANSLUCENT, () -> _builder(DefaultVertexFormat.NEW_ENTITY, GL11.GL_QUADS, builder -> builder.setTexturingState(COLORS_OFFSET).setDiffuseLightingState(DIFFUSE_LIGHTING).setLightmapState(LIGHTMAP).setAlphaState(DEFAULT_ALPHA)));
+        it.put(SkinRenderFormat.SKIN_BLOCK_FACE_LIGHTING, () -> _builder(DefaultVertexFormat.NEW_ENTITY, GL11.GL_QUADS, builder -> builder.setTexturingState(COLORS_OFFSET)));
+        it.put(SkinRenderFormat.SKIN_BLOCK_FACE_LIGHTING_TRANSLUCENT, () -> _builder(DefaultVertexFormat.NEW_ENTITY, GL11.GL_QUADS, builder -> builder.setTexturingState(COLORS_OFFSET).setAlphaState(DEFAULT_ALPHA)));
 
-        it.put(SkinRenderFormat.SKIN_FACE_TEXTURE, () -> _builder(DefaultVertexFormat.NEW_ENTITY, GL11.GL_QUADS, builder -> builder.setTexturingState(COLORS_OFFSET).setAlphaState(DEFAULT_ALPHA).setDiffuseLightingState(DIFFUSE_LIGHTING).setLightmapState(LIGHTMAP)));
-        it.put(SkinRenderFormat.SKIN_FACE_LIGHTING_TEXTURE, () -> _builder(DefaultVertexFormat.NEW_ENTITY, GL11.GL_QUADS, builder -> builder.setTexturingState(COLORS_OFFSET).setAlphaState(DEFAULT_ALPHA)));
+        it.put(SkinRenderFormat.SKIN_CUBE_FACE, () -> _builder(DefaultVertexFormat.NEW_ENTITY, GL11.GL_QUADS, builder -> builder.setTexturingState(COLORS_OFFSET).setAlphaState(DEFAULT_ALPHA).setDiffuseLightingState(DIFFUSE_LIGHTING).setLightmapState(LIGHTMAP)));
+        it.put(SkinRenderFormat.SKIN_CUBE_FACE_LIGHTING, () -> _builder(DefaultVertexFormat.NEW_ENTITY, GL11.GL_QUADS, builder -> builder.setTexturingState(COLORS_OFFSET).setAlphaState(DEFAULT_ALPHA)));
+
+        it.put(SkinRenderFormat.SKIN_MESH_FACE, () -> _builder(DefaultVertexFormat.NEW_ENTITY, GL11.GL_TRIANGLES, builder -> builder.setTexturingState(COLORS_OFFSET).setAlphaState(DEFAULT_ALPHA).setDiffuseLightingState(DIFFUSE_LIGHTING).setLightmapState(LIGHTMAP)));
+        it.put(SkinRenderFormat.SKIN_MESH_FACE_LIGHTING, () -> _builder(DefaultVertexFormat.NEW_ENTITY, GL11.GL_TRIANGLES, builder -> builder.setTexturingState(COLORS_OFFSET).setAlphaState(DEFAULT_ALPHA)));
     });
 
     public AbstractRenderType(String name, RenderType delegate, boolean affectsCrumbling, boolean sortUpload, Runnable setupRenderState, Runnable clearRenderState) {
@@ -161,6 +167,7 @@ public class AbstractRenderType extends RenderType {
 
         RenderType renderType;
         CompositeState.CompositeStateBuilder stateBuilder = CompositeState.builder();
+        ArrayList<Consumer<RenderType>> updater = new ArrayList<>();
 
         int mode;
         VertexFormat format;
@@ -292,8 +299,16 @@ public class AbstractRenderType extends RenderType {
         }
 
         @Override
+        public <T> IRenderTypeBuilder property(IAssociatedContainerKey<T> key, T value) {
+            this.updater.add(it -> DataContainer.setValue(it, key, value));
+            return this;
+        }
+
+        @Override
         public RenderType build(String name) {
-            return RenderType.create(name, format, mode, 256, affectsCrumbling, sortOnUpload, stateBuilder.createCompositeState(isOutline));
+            var renderType = RenderType.create(name, format, mode, 256, affectsCrumbling, sortOnUpload, stateBuilder.createCompositeState(isOutline));
+            updater.forEach(it -> it.accept(renderType));
+            return renderType;
         }
     }
 }

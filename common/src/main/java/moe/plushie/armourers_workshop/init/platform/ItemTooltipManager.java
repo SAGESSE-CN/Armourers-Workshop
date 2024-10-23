@@ -7,7 +7,7 @@ import moe.plushie.armourers_workshop.core.client.bake.SkinBakery;
 import moe.plushie.armourers_workshop.core.client.render.ExtendedItemRenderer;
 import moe.plushie.armourers_workshop.core.data.ticket.Tickets;
 import moe.plushie.armourers_workshop.core.skin.SkinDescriptor;
-import moe.plushie.armourers_workshop.core.skin.cube.SkinCubeTypes;
+import moe.plushie.armourers_workshop.core.skin.geometry.SkinGeometryTypes;
 import moe.plushie.armourers_workshop.init.ModConfig;
 import moe.plushie.armourers_workshop.init.ModDebugger;
 import moe.plushie.armourers_workshop.init.ModItems;
@@ -98,10 +98,10 @@ public class ItemTooltipManager {
         if (ModDebugger.tooltip && Screen.hasShiftDown()) {
 
             String totals = String.format("%d/%d/%d/%d",
-                    counter.getCubeTotal(SkinCubeTypes.SOLID),
-                    counter.getCubeTotal(SkinCubeTypes.GLOWING),
-                    counter.getCubeTotal(SkinCubeTypes.GLASS),
-                    counter.getCubeTotal(SkinCubeTypes.GLASS_GLOWING));
+                    counter.getCubeTotal(SkinGeometryTypes.BLOCK_SOLID),
+                    counter.getCubeTotal(SkinGeometryTypes.BLOCK_GLOWING),
+                    counter.getCubeTotal(SkinGeometryTypes.BLOCK_GLASS),
+                    counter.getCubeTotal(SkinGeometryTypes.BLOCK_GLASS_GLOWING));
 
             tooltip.add(TranslateUtils.subtitle("item.armourers_workshop.rollover.skinIdentifier", descriptor.getIdentifier()));
             tooltip.add(TranslateUtils.subtitle("item.armourers_workshop.rollover.skinTotalCubes", totals));

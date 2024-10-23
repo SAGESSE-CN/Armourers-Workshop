@@ -1,7 +1,7 @@
 package moe.plushie.armourers_workshop.core.client.other;
 
-import moe.plushie.armourers_workshop.api.data.IAssociatedContainer;
 import moe.plushie.armourers_workshop.api.data.IAssociatedContainerKey;
+import moe.plushie.armourers_workshop.api.data.IAssociatedContainerProvider;
 import moe.plushie.armourers_workshop.api.math.IPoseStack;
 import moe.plushie.armourers_workshop.api.painting.IPaintColor;
 import moe.plushie.armourers_workshop.api.skin.ISkinPaintType;
@@ -26,7 +26,7 @@ import moe.plushie.armourers_workshop.core.skin.property.SkinProperty;
 import moe.plushie.armourers_workshop.init.ModConfig;
 import moe.plushie.armourers_workshop.init.ModItems;
 import moe.plushie.armourers_workshop.utils.ColorUtils;
-import moe.plushie.armourers_workshop.utils.DataStorage;
+import moe.plushie.armourers_workshop.utils.DataContainer;
 import moe.plushie.armourers_workshop.utils.RenderSystem;
 import moe.plushie.armourers_workshop.utils.TickUtils;
 import net.minecraft.world.entity.Entity;
@@ -43,7 +43,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
-public class EntitySlotsHandler<T> implements IAssociatedContainer, SkinBakery.IBakeListener {
+public class EntitySlotsHandler<T> implements IAssociatedContainerProvider, SkinBakery.IBakeListener {
 
     private final SlotProvider<T> entityProvider;
     private final WardrobeProvider wardrobeProvider;
@@ -67,7 +67,7 @@ public class EntitySlotsHandler<T> implements IAssociatedContainer, SkinBakery.I
     private final AnimationManager animationManager = new AnimationManager();
     private final SkinOverriddenManager overriddenManager = new SkinOverriddenManager();
 
-    private final DataStorage dataStorage = new DataStorage();
+    private final DataContainer dataStorage = new DataContainer();
 
     private int version = 0;
     private int lastVersion = Integer.MAX_VALUE;
@@ -222,13 +222,13 @@ public class EntitySlotsHandler<T> implements IAssociatedContainer, SkinBakery.I
         animatedSkins.put(slot.getDescriptor(), slot.getBakedSkin());
     }
 
-    public void onActivate(){
+    public void onActivate() {
     }
 
     public void onApply() {
     }
 
-    public void onDeactivate(){
+    public void onDeactivate() {
         locatorPoses.clear();
     }
 
@@ -331,8 +331,8 @@ public class EntitySlotsHandler<T> implements IAssociatedContainer, SkinBakery.I
     }
 
     @Override
-    public <V> void setAssociatedObject(V value, IAssociatedContainerKey<V> key) {
-        dataStorage.setAssociatedObject(value, key);
+    public <V> void setAssociatedObject(IAssociatedContainerKey<V> key, V value) {
+        dataStorage.setAssociatedObject(key, value);
     }
 
     protected static abstract class SlotProvider<T> {

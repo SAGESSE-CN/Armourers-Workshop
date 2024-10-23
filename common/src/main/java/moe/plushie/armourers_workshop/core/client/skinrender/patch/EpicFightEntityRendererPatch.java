@@ -84,7 +84,7 @@ public class EpicFightEntityRendererPatch<T extends LivingEntity> extends Entity
     public void setTransformProvider(EpicFlightTransformProvider newTransformProvider) {
         transformProvider = newTransformProvider;
         if (transformerModel != null) {
-            transformerModel.setAssociatedObject(newTransformProvider, EpicFlightTransformProvider.KEY);
+            transformerModel.setAssociatedObject(EpicFlightTransformProvider.KEY, newTransformProvider);
         }
     }
 

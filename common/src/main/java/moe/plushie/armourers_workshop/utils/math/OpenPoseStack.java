@@ -87,6 +87,12 @@ public class OpenPoseStack implements IPoseStack {
 //        }
     }
 
+    public OpenPoseStack copy() {
+        var poseStack = new OpenPoseStack();
+        poseStack.entry.set(entry);
+        return poseStack;
+    }
+
     @Override
     public Pose last() {
         return entry;

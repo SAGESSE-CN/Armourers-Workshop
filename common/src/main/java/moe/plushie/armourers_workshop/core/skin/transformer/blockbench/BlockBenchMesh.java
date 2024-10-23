@@ -6,6 +6,7 @@ import moe.plushie.armourers_workshop.utils.math.Vector3f;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/// https://github.com/JannisX11/blockbench/blob/master/js/outliner/mesh.js
 public class BlockBenchMesh extends BlockBenchElement {
 
     private final boolean boxUV;

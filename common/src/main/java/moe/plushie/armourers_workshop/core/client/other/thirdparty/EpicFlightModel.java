@@ -3,13 +3,13 @@ package moe.plushie.armourers_workshop.core.client.other.thirdparty;
 import moe.plushie.armourers_workshop.api.client.model.IModel;
 import moe.plushie.armourers_workshop.core.client.bake.BakedArmatureTransformer;
 import moe.plushie.armourers_workshop.core.client.model.LinkedModel;
-import moe.plushie.armourers_workshop.utils.DataStorageKey;
+import moe.plushie.armourers_workshop.utils.DataContainerKey;
 import moe.plushie.armourers_workshop.utils.ModelHolder;
 import net.minecraft.client.model.Model;
 
 public class EpicFlightModel extends LinkedModel {
 
-    private static final DataStorageKey<EpicFlightModel> KEY = DataStorageKey.of("EpicFlightModel", EpicFlightModel.class);
+    private static final DataContainerKey<EpicFlightModel> KEY = DataContainerKey.of("EpicFlightModel", EpicFlightModel.class);
 
     private Object childRef;
 
@@ -30,7 +30,7 @@ public class EpicFlightModel extends LinkedModel {
             return model2;
         }
         model2 = new EpicFlightModel(model1);
-        model1.setAssociatedObject(model2, KEY);
+        model1.setAssociatedObject(KEY, model2);
         return model2;
     }
 

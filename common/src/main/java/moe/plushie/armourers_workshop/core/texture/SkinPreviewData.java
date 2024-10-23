@@ -4,7 +4,7 @@ import moe.plushie.armourers_workshop.api.skin.ISkinTransform;
 import moe.plushie.armourers_workshop.core.data.transform.SkinPartTransform;
 import moe.plushie.armourers_workshop.core.data.transform.SkinTransform;
 import moe.plushie.armourers_workshop.core.skin.Skin;
-import moe.plushie.armourers_workshop.core.skin.cube.SkinCubes;
+import moe.plushie.armourers_workshop.core.skin.geometry.SkinGeometrySet;
 import moe.plushie.armourers_workshop.core.skin.part.SkinPart;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -15,10 +15,10 @@ import java.util.function.Consumer;
 
 public class SkinPreviewData {
 
-    private final Collection<Pair<ISkinTransform, SkinCubes>> allCubes;
+    private final Collection<Pair<ISkinTransform, SkinGeometrySet<?>>> allGeometries;
 
-    public SkinPreviewData(Collection<Pair<ISkinTransform, SkinCubes>> allCubes) {
-        this.allCubes = allCubes;
+    public SkinPreviewData(Collection<Pair<ISkinTransform, SkinGeometrySet<?>>> allGeometries) {
+        this.allGeometries = allGeometries;
     }
 
     public static SkinPreviewData of(Skin skin) {
@@ -26,14 +26,14 @@ public class SkinPreviewData {
         if (skin.getPreviewData() != null) {
             return skin.getPreviewData();
         }
-        var allCubes = new ArrayList<Pair<ISkinTransform, SkinCubes>>();
+        var allCubes = new ArrayList<Pair<ISkinTransform, SkinGeometrySet<?>>>();
         eachPart(skin.getParts(), part -> {
             // apply the origin offset.
             var pos = part.getType().getRenderOffset();
             var offset = SkinTransform.createTranslateTransform(pos.getX(), pos.getY(), pos.getZ());
             // apply the marker rotation and offset.
             var transform = new SkinPartTransform(part, offset);
-            allCubes.add(Pair.of(transform, part.getCubeData()));
+            allCubes.add(Pair.of(transform, part.getGeometries()));
         });
         return new SkinPreviewData(allCubes);
     }
@@ -41,11 +41,11 @@ public class SkinPreviewData {
     private static void eachPart(Collection<SkinPart> parts, Consumer<SkinPart> consumer) {
         for (var part : parts) {
             consumer.accept(part);
-            eachPart(part.getParts(), consumer);
+            eachPart(part.getChildren(), consumer);
         }
     }
 
-    public void forEach(BiConsumer<ISkinTransform, SkinCubes> consumer) {
-        allCubes.forEach(pair -> consumer.accept(pair.getKey(), pair.getValue()));
+    public void forEach(BiConsumer<ISkinTransform, SkinGeometrySet<?>> consumer) {
+        allGeometries.forEach(pair -> consumer.accept(pair.getKey(), pair.getValue()));
     }
 }

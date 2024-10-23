@@ -35,7 +35,7 @@ public class BakedSkinPartCombiner {
         for (var childNode : rootNode.children) {
             childNode.freeze(motionNodes, restNodes);
         }
-        var pendingQuads = new ArrayList<Pair<ISkinTransform, BakedCubeQuads>>();
+        var pendingQuads = new ArrayList<Pair<ISkinTransform, BakedGeometryQuads>>();
         for (var childNode : restNodes) {
             var resolvedTransform = childNode.resolveTransform();
             var resolvedQuads = childNode.part.getQuads();
@@ -47,7 +47,7 @@ public class BakedSkinPartCombiner {
             var part = clip(childNode.part);
             childrenParts.add(Pair.of(transform, part));
         }
-        var mergedQuads = BakedCubeQuads.merge(rootPart.getQuads(), pendingQuads);
+        var mergedQuads = BakedGeometryQuads.merge(rootPart.getQuads(), pendingQuads);
         var resolvedPart = new BakedSkinPart(rootPart.getPart(), rootPart.getTransform(), mergedQuads);
         for (var pair : childrenParts) {
             var transform = pair.getKey();

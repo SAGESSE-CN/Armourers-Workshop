@@ -75,7 +75,7 @@ public class SkinRenderer {
     }
 
     public static OpenVoxelShape getShape(Entity entity, BakedArmature armature, BakedSkin bakedSkin, IPoseStack poseStack) {
-        var voxelShape = OpenVoxelShape.empty();
+        var voxelShape = new OpenVoxelShape();
         for (var part : bakedSkin.getParts()) {
             if (!part.isVisible()) {
                 continue; // ignore invisible part.

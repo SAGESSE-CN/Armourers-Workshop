@@ -1,11 +1,11 @@
 package moe.plushie.armourers_workshop.compatibility.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import moe.plushie.armourers_workshop.api.data.IAssociatedObjectProvider;
 import moe.plushie.armourers_workshop.api.math.IMatrix3f;
 import moe.plushie.armourers_workshop.api.math.IMatrix4f;
 import moe.plushie.armourers_workshop.api.math.IPoseStack;
 import moe.plushie.armourers_workshop.api.math.IQuaternionf;
+import moe.plushie.armourers_workshop.utils.DataContainer;
 import moe.plushie.armourers_workshop.utils.MathUtils;
 import moe.plushie.armourers_workshop.utils.math.OpenPoseStack;
 import net.fabricmc.api.EnvType;
@@ -32,7 +32,7 @@ public class AbstractPoseStack extends AbstractPoseStackImpl implements IPoseSta
 
     public static OpenPoseStack create(PoseStack poseStack) {
         var poseStack1 = REUSABLE_QUEUE.get();
-        poseStack1.last().set(IAssociatedObjectProvider.of(poseStack.last(), Pose::new));
+        poseStack1.last().set(DataContainer.lazy(poseStack.last(), Pose::new));
         return poseStack1;
     }
 
@@ -42,7 +42,7 @@ public class AbstractPoseStack extends AbstractPoseStackImpl implements IPoseSta
     }
 
     public static IPoseStack wrap(PoseStack poseStack) {
-        return IAssociatedObjectProvider.of(poseStack, AbstractPoseStack::new);
+        return DataContainer.lazy(poseStack, AbstractPoseStack::new);
     }
 
     public static PoseStack unwrap(IPoseStack poseStack) {
@@ -111,7 +111,7 @@ public class AbstractPoseStack extends AbstractPoseStackImpl implements IPoseSta
 
     @Override
     public Pose last() {
-        return IAssociatedObjectProvider.of(stack.last(), Pose::new);
+        return DataContainer.lazy(stack.last(), Pose::new);
     }
 
     public static class Pose implements IPoseStack.Pose {

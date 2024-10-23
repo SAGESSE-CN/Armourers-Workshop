@@ -4,7 +4,7 @@ import moe.plushie.armourers_workshop.api.client.model.IModel;
 import moe.plushie.armourers_workshop.api.client.model.IModelBabyPose;
 import moe.plushie.armourers_workshop.api.client.model.IModelPart;
 import moe.plushie.armourers_workshop.api.data.IAssociatedContainerKey;
-import moe.plushie.armourers_workshop.utils.DataStorage;
+import moe.plushie.armourers_workshop.utils.DataContainer;
 import moe.plushie.armourers_workshop.utils.ModelPartPose;
 
 import java.util.ArrayList;
@@ -16,7 +16,7 @@ public class PlaceholderModel implements IModel {
     private final ArrayList<IModelPart> allParts = new ArrayList<>();
     private final HashMap<String, Part> namedParts = new HashMap<>();
 
-    private final DataStorage storage = new DataStorage();
+    private final DataContainer storage = new DataContainer();
 
     @Override
     public IModelBabyPose getBabyPose() {
@@ -48,8 +48,8 @@ public class PlaceholderModel implements IModel {
     }
 
     @Override
-    public <T> void setAssociatedObject(T value, IAssociatedContainerKey<T> key) {
-        storage.setAssociatedObject(value, key);
+    public <T> void setAssociatedObject(IAssociatedContainerKey<T> key, T value) {
+        storage.setAssociatedObject(key, value);
     }
 
     public static class Part implements IModelPart {

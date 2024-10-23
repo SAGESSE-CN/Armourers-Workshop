@@ -259,7 +259,7 @@ public class SkinFileUtils {
         tree.append("name=").append(ObjectUtils.orElse(part.getName(), "")).append(",");
         tree.append("type=").append(part.getType().getRegistryName().getPath());
         tree.append(">\n");
-        for (var childPart : part.getParts()) {
+        for (var childPart : part.getChildren()) {
             var prefix = "|-- ";
             var subtree = dumpTree(childPart);
             for (var line : subtree.split("\n")) {
@@ -267,11 +267,8 @@ public class SkinFileUtils {
                 prefix = "| ";
             }
         }
-        var data = part.getCubeData();
-        var count = data.getCubeTotal();
-        for (int i = 0; i < count; ++i) {
-            var cube = data.getCube(i);
-            tree.append("<SkinCube ").append("rect=").append(cube.getShape()).append(",").append("type=").append(cube.getType().getRegistryName().getPath()).append(">\n");
+        for (var geometry : part.getGeometries()) {
+            tree.append("<SkinCube ").append("rect=").append(geometry.getShape()).append(",").append("type=").append(geometry.getType().getRegistryName().getPath()).append(">\n");
         }
         return tree.toString();
     }

@@ -155,6 +155,19 @@ public class SkinTransform implements ITransformf, ISkinTransform {
         return this == IDENTITY;
     }
 
+    public SkinTransform copy() {
+        if (this == IDENTITY) {
+            return IDENTITY;
+        }
+        var transform = new SkinTransform();
+        transform.translate = translate;
+        transform.rotation = translate;
+        transform.scale = translate;
+        transform.pivot = translate;
+        transform.afterTranslate = translate;
+        return transform;
+    }
+
     @Override
     public Vector3f getTranslate() {
         return translate;

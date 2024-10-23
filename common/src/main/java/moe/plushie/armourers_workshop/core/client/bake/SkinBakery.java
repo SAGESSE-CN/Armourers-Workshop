@@ -169,7 +169,7 @@ public final class SkinBakery implements ISkinLibraryListener {
 
         eachPart(skin.getParts(), null, (parent, part) -> {
             var children = new ArrayList<BakedSkinPart>();
-            BakedCubeQuads.from(part).forEach((partType, partTransform, quads) -> {
+            BakedGeometryQuads.from(part).forEach((partType, partTransform, quads) -> {
                 // when has a different part type, it means the skin part was split.
                 // for ensure data safety, we need create a blank skin part to manage data.
                 var usedPart = part;
@@ -194,12 +194,11 @@ public final class SkinBakery implements ISkinLibraryListener {
                     mainChildPart = bakedPart;
                 }
             }
-            usedCounter.add(part.getCubeData().getUsedCounter());
-            // part.clearCubeData();
+            usedCounter.add(part.getGeometries().getUsedCounter());
             return mainChildPart;
         });
 
-        BakedCubeQuads.from(skin.getPaintData()).forEach((partType, partTransform, quads) -> {
+        BakedGeometryQuads.from(skin.getPaintData()).forEach((partType, partTransform, quads) -> {
             var part = new SkinPart.Builder(partType).build();
             var bakedPart = new BakedSkinPart(part, new SkinPartTransform(part, partTransform), quads);
             bakedPart.setRenderPolygonOffset(20);
@@ -209,7 +208,7 @@ public final class SkinBakery implements ISkinLibraryListener {
 
         // we only bake special parts in preview mode.
         if (skin.getSettings().isPreviewMode()) {
-            BakedCubeQuads.from(skin.getPreviewData()).forEach((partType, partTransform, quads) -> {
+            BakedGeometryQuads.from(skin.getPreviewData()).forEach((partType, partTransform, quads) -> {
                 var part = new SkinPart.Builder(partType).build();
                 var bakedPart = new BakedSkinPart(part, new SkinPartTransform(part, partTransform), quads);
                 bakedPart.setRenderPolygonOffset(bakedParts.size());
@@ -258,7 +257,7 @@ public final class SkinBakery implements ISkinLibraryListener {
     private void eachPart(Collection<SkinPart> parts, BakedSkinPart parent, BiFunction<BakedSkinPart, SkinPart, BakedSkinPart> consumer) {
         for (var part : parts) {
             var value = consumer.apply(parent, part);
-            eachPart(part.getParts(), value, consumer);
+            eachPart(part.getChildren(), value, consumer);
         }
     }
 

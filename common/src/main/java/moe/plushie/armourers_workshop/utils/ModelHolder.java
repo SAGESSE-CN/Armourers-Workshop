@@ -3,7 +3,6 @@ package moe.plushie.armourers_workshop.utils;
 import moe.plushie.armourers_workshop.api.client.model.IModel;
 import moe.plushie.armourers_workshop.api.client.model.IModelBabyPose;
 import moe.plushie.armourers_workshop.api.client.model.IModelPartCollector;
-import moe.plushie.armourers_workshop.api.data.IAssociatedObjectProvider;
 import moe.plushie.armourers_workshop.core.client.model.CachedModel;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -32,19 +31,13 @@ public class ModelHolder {
     }
 
     public static <M extends IModel> M of(Model model) {
-        IAssociatedObjectProvider provider = ObjectUtils.safeCast(model, IAssociatedObjectProvider.class);
-        if (provider != null) {
-            M holder = provider.getAssociatedObject();
-            if (holder != null) {
-                return holder;
-            }
-            holder = createHolder(model);
-            provider.setAssociatedObject(holder);
+        M holder = DataContainer.get(model, null);
+        if (holder != null) {
             return holder;
         }
-        // If the model can't support the cache, we create it every time,
-        // although it causes performance degradation, but it works fine.
-        return createHolder(model);
+        holder = createHolder(model);
+        DataContainer.set(model, holder);
+        return holder;
     }
 
     public static <T extends Model> void register(Class<T> clazz, Map<String, String> mapper) {

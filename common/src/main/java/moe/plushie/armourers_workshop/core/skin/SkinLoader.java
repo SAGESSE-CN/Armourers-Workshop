@@ -944,7 +944,7 @@ public class SkinLoader {
                 if (part == null) {
                     return null;
                 }
-                parts = part.getParts();
+                parts = part.getChildren();
             }
             return part;
         }
@@ -969,7 +969,7 @@ public class SkinLoader {
             if (name != null && names.contains(name)) {
                 return true;
             }
-            for (var child : part.getParts()) {
+            for (var child : part.getChildren()) {
                 if (containsPart(names, child)) {
                     return true;
                 }

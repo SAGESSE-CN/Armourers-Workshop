@@ -1,10 +1,10 @@
 package moe.plushie.armourers_workshop.compatibility.forge.extensions.net.minecraft.client.renderer.GameRenderer;
 
 import moe.plushie.armourers_workshop.api.annotation.Available;
-import moe.plushie.armourers_workshop.api.data.IAssociatedObjectProvider;
 import moe.plushie.armourers_workshop.api.registry.IRegistryHolder;
 import moe.plushie.armourers_workshop.compatibility.client.AbstractItemStackRendererProvider;
 import moe.plushie.armourers_workshop.compatibility.forge.AbstractForgeItemRenderer;
+import moe.plushie.armourers_workshop.compatibility.forge.AbstractForgeItemRendererProvider;
 import moe.plushie.armourers_workshop.init.environment.EnvironmentExecutor;
 import moe.plushie.armourers_workshop.init.environment.EnvironmentType;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
@@ -19,9 +19,9 @@ public class ForgeItemRegistry {
 
     public static void registerItemRendererFO(@ThisClass Class<?> clazz, IRegistryHolder<? extends Item> item, AbstractItemStackRendererProvider provider) {
         EnvironmentExecutor.didInit(EnvironmentType.CLIENT, () -> () -> {
-            var provider1 = (IAssociatedObjectProvider) item.get();
+            var provider1 = (AbstractForgeItemRendererProvider) item.get();
             var renderer = provider.create();
-            provider1.setAssociatedObject(new AbstractForgeItemRenderer() {
+            provider1.setItemRenderer(new AbstractForgeItemRenderer() {
 
                 @Override
                 public BlockEntityWithoutLevelRenderer getCustomRenderer() {

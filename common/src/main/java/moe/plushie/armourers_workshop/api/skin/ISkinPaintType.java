@@ -9,7 +9,7 @@ public interface ISkinPaintType extends IRegistryEntry {
 
     int getIndex();
 
-    ITextureKey getTexture();
+    ITextureKey getTextureKey();
 
     ISkinDyeType getDyeType();
 }

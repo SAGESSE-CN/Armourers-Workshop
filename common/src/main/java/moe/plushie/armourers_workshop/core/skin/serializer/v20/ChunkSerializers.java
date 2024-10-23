@@ -16,7 +16,7 @@ import moe.plushie.armourers_workshop.core.skin.serializer.io.IInputStream;
 import moe.plushie.armourers_workshop.core.skin.serializer.io.IOutputStream;
 import moe.plushie.armourers_workshop.core.skin.serializer.v20.chunk.ChunkAnimationData;
 import moe.plushie.armourers_workshop.core.skin.serializer.v20.chunk.ChunkContext;
-import moe.plushie.armourers_workshop.core.skin.serializer.v20.chunk.ChunkCubeData;
+import moe.plushie.armourers_workshop.core.skin.serializer.v20.chunk.ChunkGeometryData;
 import moe.plushie.armourers_workshop.core.skin.serializer.v20.chunk.ChunkInputStream;
 import moe.plushie.armourers_workshop.core.skin.serializer.v20.chunk.ChunkOutputStream;
 import moe.plushie.armourers_workshop.core.skin.serializer.v20.chunk.ChunkPaintData;
@@ -40,19 +40,18 @@ import java.util.List;
  * chunk format:          |< length(4B) | name(4B) | flag(2B) >[ chunk data ]|
  * part chunk format:     |< length(4B) | name(4B) | flag(2B) | id(4B) >[ chunk data ]|
  * skin properties :      | length | PPTS | flag |[ key/value ]|
- * cube data:             | length | CCBO | flag |< id(VB) | opt(VB) >[ cube entry(VB) |[ face options(1B) | cube face entry(VB) ](1-6)]|
- * cube data preview:     | length | VCBO | flag |< id(VB) | transform(VB) >[ cube sel(8B) ]|
+ * geometry data:         | length | CCBO | flag |< id(VB) | opt(VB) >[ geometry entry(VB) ]|
+ * geometry data preview: | length | VCBO | flag |< id(VB) | transform(VB) >[ geometry sel(8B) ]|
  * animation data:        | length | ANIM | flag |[ id(VB) | duration(4B) | loop(VB) |< bone(VB) | channel(VB) >[ time(4B) | opt(VB) |[ type(1B) | value(VB) ]|]|]|
- * skin part:             | length | SKPR | flag |[ id(VB) | pid(VB) | name(VB) | type(VB) | transform(VB) |[ cube sel(8B) ]]|{ part chunk }|
+ * skin part:             | length | SKPR | flag |[ id(VB) | pid(VB) | name(VB) | type(VB) | transform(VB) |[ geometry sel(8B) ]]|{ part chunk }|
  * skin part markers:     | length | PRMK | flag |[ x(1B)/y(1B)/z(1B) | meta(1B) ]|
  * skin paint data:       | length | PADT | flag | opt(VB)/total width(VB)/total height(VB) |< width(VB) | height(VB) >[ color index ]|
  * skin security data:    | length | SSDT | flag | algorithm(3B)/signature(VB) |
  * palette data:          | length | PALE | flag | opt(VB)/reserved(VB) |< paint type(1B)/used bytes(1B) >[ palette entry(VB) ]|
  * chunk flag:            1 encrypt, 2 gzip, 3 encrypt+gzip
- * cube entry:            x(1B)/y(1B)/z(1B)
- * #                      origin(12B)/size(12B), type(4b)/translate(12B)/rotation(12B)/scale(12B)/pivot(12B)/offset(12B)
- * cube face entry:       color index(VB)
- * #                      first: u(VB)/v(VB), second: s(VB)/t(VB)
+ * geometry entry (v1):   | x(1B)/y(1B)/z(1B) |[ face options(1B) | color index(VB) ](1-6)]|
+ * geometry entry (v2):   | origin(12B)/size(12B) | type(4b)/translate(12B)/rotation(12B)/scale(12B)/pivot(12B)/offset(12B) |[ face options(1B) | u(VB)/v(VB):first or s(VB)/t(VB):second(optional) ]|
+ * geometry entry (v3):   | type(4B)/transform(4B) |[ id(4B)/vertex(12B)/normal(12B)/uv(VB)/weight(4B) ]|
  * palette entry:         RRGGBB/AARRGGBB
  * #                      id(VB)/parent id(VB)/x(4B)/y(4B)/w(4B)/h(4B)/ani(4B)/opt(4B)/bytes(4B) | raw data(nB)
  * symbol:                {n} = (length(4B) + byte[length]) * n + 0(4B)
@@ -75,16 +74,16 @@ public class ChunkSerializers {
                     throw new IOException("Can't decrypt skin by the security key.");
                 }
                 var palette = it.read(SKIN_TEXTURE_DATA);
-                var chunkCubes = it.read(SKIN_CUBE_DATA, palette);
+                var geometryData = it.read(SKIN_GEOMETRY_DATA, palette);
                 var builder = new Skin.Builder(skinType);
                 builder.properties(it.read(SKIN_PROPERTIES));
                 builder.settings(settings);
                 builder.paintData(it.read(SKIN_PAINT_DATA, palette));
-                builder.previewData(it.read(SKIN_PREVIEW_DATA, chunkCubes));
-                builder.parts(it.read(SKIN_PART, chunkCubes));
+                builder.previewData(it.read(SKIN_PREVIEW_DATA, geometryData));
+                builder.parts(it.read(SKIN_PART, geometryData));
                 builder.animations(it.read(SKIN_ANIMATION_DATA));
                 builder.blobs(it.readBlobs());
-                builder.id(chunkCubes.getId());
+                builder.id(geometryData.getId());
                 builder.version(context.getFileVersion());
                 return builder.build();
             });
@@ -96,17 +95,17 @@ public class ChunkSerializers {
             stream.writeType(skin.getType());
             stream.writeChunk(it -> {
                 var palette = new ChunkPaletteData();
-                var chunkCubes = new ChunkCubeData(skin.getId(), palette);
+                var geometryData = new ChunkGeometryData(skin.getId(), palette);
                 it.write(SKIN_PROPERTIES, skin.getProperties());
                 it.write(SKIN_SETTINGS, skin.getSettings().copyWithOptions(context.getOptions()));
                 it.write(SKIN_TEXTURE_DATA, palette);
                 it.write(SKIN_PAINT_DATA, skin.getPaintData(), palette);
-                it.write(SKIN_CUBE_DATA, chunkCubes, palette);
+                it.write(SKIN_GEOMETRY_DATA, geometryData, palette);
                 it.write(SKIN_ANIMATION_DATA, skin.getAnimations());
-                it.write(SKIN_PART, skin.getParts(), chunkCubes);
+                it.write(SKIN_PART, skin.getParts(), geometryData);
                 // whether to enable preview data by the options.
                 if (context.isEnablePreviewData()) {
-                    it.write(SKIN_PREVIEW_DATA, SkinPreviewData.of(skin), chunkCubes);
+                    it.write(SKIN_PREVIEW_DATA, SkinPreviewData.of(skin), geometryData);
                 }
                 it.writeBlobs(skin.getBlobs());
             });
@@ -135,11 +134,11 @@ public class ChunkSerializers {
         }
     });
 
-    public static final ChunkSerializer<List<SkinPart>, ChunkCubeData> SKIN_PART = register(new ChunkSerializer<>(ChunkType.SKIN_PART) {
+    public static final ChunkSerializer<List<SkinPart>, ChunkGeometryData> SKIN_PART = register(new ChunkSerializer<>(ChunkType.SKIN_PART) {
 
         @Override
-        public List<SkinPart> read(ChunkInputStream stream, ChunkCubeData chunkCubes) throws IOException {
-            var partData = new ChunkPartData(chunkCubes);
+        public List<SkinPart> read(ChunkInputStream stream, ChunkGeometryData geometryData) throws IOException {
+            var partData = new ChunkPartData(geometryData);
             return partData.readFromStream(stream, (it, builder) -> {
                 builder.markers(it.read(SKIN_MARKERS));
                 // TODO: impl @SAGESSE
@@ -150,8 +149,8 @@ public class ChunkSerializers {
         }
 
         @Override
-        public void write(List<SkinPart> parts, ChunkCubeData chunkCubes, ChunkOutputStream stream) throws IOException {
-            var partData = new ChunkPartData(chunkCubes);
+        public void write(List<SkinPart> parts, ChunkGeometryData geometryData, ChunkOutputStream stream) throws IOException {
+            var partData = new ChunkPartData(geometryData);
             partData.writeToStream(stream, parts, (it, part) -> {
                 it.write(SKIN_MARKERS, part.getMarkers());
                 // TODO: impl @SAGESSE
@@ -184,18 +183,18 @@ public class ChunkSerializers {
     });
 
 
-    public static final ChunkSerializer<ChunkCubeData, ChunkPaletteData> SKIN_CUBE_DATA = register(new ChunkSerializer<>(ChunkType.CUBE_DATA) {
+    public static final ChunkSerializer<ChunkGeometryData, ChunkPaletteData> SKIN_GEOMETRY_DATA = register(new ChunkSerializer<>(ChunkType.GEOMETRY_DATA) {
 
         @Override
-        public ChunkCubeData read(ChunkInputStream stream, ChunkPaletteData palette) throws IOException {
-            var chunkCubes = new ChunkCubeData(Skin.Builder.generateId(), palette);
-            chunkCubes.readFromStream(stream);
-            return chunkCubes;
+        public ChunkGeometryData read(ChunkInputStream stream, ChunkPaletteData palette) throws IOException {
+            var geometryData = new ChunkGeometryData(Skin.Builder.generateId(), palette);
+            geometryData.readFromStream(stream);
+            return geometryData;
         }
 
         @Override
-        public void write(ChunkCubeData chunkCubes, ChunkPaletteData palette, ChunkOutputStream stream) throws IOException {
-            stream.writeVariable(chunkCubes);
+        public void write(ChunkGeometryData geometryData, ChunkPaletteData palette, ChunkOutputStream stream) throws IOException {
+            stream.writeVariable(geometryData);
         }
     });
 
@@ -214,17 +213,17 @@ public class ChunkSerializers {
         }
     });
 
-    public static final ChunkSerializer<SkinPreviewData, ChunkCubeData> SKIN_PREVIEW_DATA = register(new ChunkSerializer<>(ChunkType.PREVIEW_DATA) {
+    public static final ChunkSerializer<SkinPreviewData, ChunkGeometryData> SKIN_PREVIEW_DATA = register(new ChunkSerializer<>(ChunkType.PREVIEW_DATA) {
 
         @Override
-        public SkinPreviewData read(ChunkInputStream stream, ChunkCubeData chunkCubes) throws IOException {
-            var chunkPreviewData = new ChunkPreviewData(chunkCubes);
+        public SkinPreviewData read(ChunkInputStream stream, ChunkGeometryData geometryData) throws IOException {
+            var chunkPreviewData = new ChunkPreviewData(geometryData);
             return chunkPreviewData.readFromStream(stream);
         }
 
         @Override
-        public void write(SkinPreviewData previewData, ChunkCubeData chunkCubes, ChunkOutputStream stream) throws IOException {
-            var chunkPreviewData = new ChunkPreviewData(chunkCubes);
+        public void write(SkinPreviewData previewData, ChunkGeometryData geometryData, ChunkOutputStream stream) throws IOException {
+            var chunkPreviewData = new ChunkPreviewData(geometryData);
             chunkPreviewData.writeToStream(previewData, stream);
         }
     });

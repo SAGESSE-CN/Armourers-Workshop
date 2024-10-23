@@ -1,7 +1,7 @@
 package moe.plushie.armourers_workshop.core.client.render;
 
-import moe.plushie.armourers_workshop.api.data.IAssociatedObjectProvider;
 import moe.plushie.armourers_workshop.core.client.bake.BakedArmatureTransformer;
+import moe.plushie.armourers_workshop.utils.DataContainer;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 
 import java.util.HashMap;
@@ -17,7 +17,7 @@ public class EntityRendererStorage {
     }
 
     public static EntityRendererStorage of(EntityRenderer<?> entityRenderer) {
-        return IAssociatedObjectProvider.of(entityRenderer, EntityRendererStorage::new);
+        return DataContainer.lazy(entityRenderer, EntityRendererStorage::new);
     }
 
     public <T> BakedArmatureTransformer getTransformer(T key) {

@@ -1,6 +1,6 @@
 package moe.plushie.armourers_workshop.core.client.model;
 
-import moe.plushie.armourers_workshop.api.data.IAssociatedObjectProvider;
+import moe.plushie.armourers_workshop.api.data.IAssociatedContainerProvider;
 import moe.plushie.armourers_workshop.utils.EmbeddedSkinStack;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -31,18 +31,18 @@ public class BakedModelStorage {
 
     @Nullable
     public static BakedModelStorage unwrap(BakedModel bakedModel) {
-        if (bakedModel instanceof IAssociatedObjectProvider provider) {
-            return provider.getAssociatedObject();
+        if (bakedModel instanceof IAssociatedContainerProvider provider) {
+            return provider.getAssociatedObject(null);
         }
         return null;
     }
 
     public static BakedModel wrap(BakedModel bakedModel, ItemStack itemStack, EmbeddedSkinStack embeddedStack, LivingEntity entity, @Nullable Level level) {
         // we use a java proxy, which will forward all methods back to the original baked model.
-        var classes = new Class[]{BakedModel.class, IAssociatedObjectProvider.class};
+        var classes = new Class[]{BakedModel.class, IAssociatedContainerProvider.class};
         var storage = new BakedModelStorage(itemStack, embeddedStack, entity, level, bakedModel);
         return (BakedModel) Proxy.newProxyInstance(BakedModel.class.getClassLoader(), classes, (proxy, method, methodArgs) -> {
-            if (method.getDeclaringClass() == IAssociatedObjectProvider.class) {
+            if (method.getDeclaringClass() == IAssociatedContainerProvider.class) {
                 return storage;
             }
             return method.invoke(storage.bakedModel, methodArgs);

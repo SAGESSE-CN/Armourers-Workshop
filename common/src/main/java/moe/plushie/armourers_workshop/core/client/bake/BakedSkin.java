@@ -47,6 +47,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Environment(EnvType.CLIENT)
@@ -58,7 +59,7 @@ public class BakedSkin implements IBakedSkin {
     private final Skin skin;
     private final ISkinType skinType;
     private final HashMap<Object, Rectangle3f> cachedBounds = new HashMap<>();
-    private final HashMap<BlockPos, Rectangle3i> cachedBlockBounds = new HashMap<>();
+    private final HashMap<BlockPos, Rectangle3f> cachedBlockBounds = new HashMap<>();
 
     private final ArrayList<SkinWingsTransform> cachedWingsTransforms = new ArrayList<>();
     private final ArrayList<BakedItemTransform> cachedItemTransforms = new ArrayList<>();
@@ -172,7 +173,7 @@ public class BakedSkin implements IBakedSkin {
         return usedCounter;
     }
 
-    public HashMap<BlockPos, Rectangle3i> getBlockBounds() {
+    public Map<BlockPos, Rectangle3f> getBlockBounds() {
         return cachedBlockBounds;
     }
 

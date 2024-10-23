@@ -7,6 +7,8 @@ import java.util.Objects;
 @SuppressWarnings("unused")
 public class Vector2f implements IVector2f {
 
+    public static final int BYTES = Float.BYTES * 3;
+
     public static Vector2f ZERO = new Vector2f();
 
     public float x;

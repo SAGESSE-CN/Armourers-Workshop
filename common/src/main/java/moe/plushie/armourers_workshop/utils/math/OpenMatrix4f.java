@@ -275,6 +275,13 @@ public class OpenMatrix4f implements IMatrix4f {
         return this;
     }
 
+    public OpenMatrix4f setTranslation(float x, float y, float z) {
+        m03 = x;
+        m13 = y;
+        m23 = z;
+        return this;
+    }
+
     public OpenMatrix4f setIdentity() {
         m00 = 1.0f;
         m01 = 0.0f;

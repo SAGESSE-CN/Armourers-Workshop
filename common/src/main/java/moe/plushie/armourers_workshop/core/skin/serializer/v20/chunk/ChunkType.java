@@ -2,7 +2,7 @@ package moe.plushie.armourers_workshop.core.skin.serializer.v20.chunk;
 
 public enum ChunkType {
     SKIN("SKIN"),
-    CUBE_DATA("CCBO"),
+    GEOMETRY_DATA("CCBO"),
     PAINT_DATA("PADT"),
     PREVIEW_DATA("VCBO"),
     ANIMATION_DATA("ANIM"),

@@ -4,21 +4,23 @@ import com.google.common.collect.Lists;
 import moe.plushie.armourers_workshop.api.math.IMatrix4f;
 import moe.plushie.armourers_workshop.api.math.IRectangle3f;
 import moe.plushie.armourers_workshop.api.math.IRectangle3i;
+import moe.plushie.armourers_workshop.api.math.IVector3f;
+import moe.plushie.armourers_workshop.api.math.IVoxelShape;
 import moe.plushie.armourers_workshop.utils.ObjectUtils;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 @SuppressWarnings("unused")
-public class OpenVoxelShape implements Iterable<Vector4f> {
+public class OpenVoxelShape implements IVoxelShape, Iterable<Vector4f> {
 
     private OpenBoundingBox aabb;
     private Rectangle3f box;
     private ArrayList<Vector4f> vertexes;
 
-    protected OpenVoxelShape() {
+    public OpenVoxelShape() {
     }
 
     public static OpenVoxelShape empty() {
@@ -39,7 +41,7 @@ public class OpenVoxelShape implements Iterable<Vector4f> {
     }
 
     public static OpenVoxelShape box(Rectangle3f bounds) {
-        OpenVoxelShape shape = new OpenVoxelShape();
+        var shape = new OpenVoxelShape();
         shape.box = bounds;
         return shape;
     }
@@ -59,8 +61,8 @@ public class OpenVoxelShape implements Iterable<Vector4f> {
         if (vertexes == null || vertexes.isEmpty()) {
             return Rectangle3f.ZERO;
         }
-        Iterator<Vector4f> iterator = vertexes.iterator();
-        Vector4f fp = iterator.next();
+        var iterator = vertexes.iterator();
+        var fp = iterator.next();
         float minX = fp.x(), minY = fp.y(), minZ = fp.z();
         float maxX = fp.x(), maxY = fp.y(), maxZ = fp.z();
         while (iterator.hasNext()) {
@@ -77,7 +79,7 @@ public class OpenVoxelShape implements Iterable<Vector4f> {
     }
 
     public void mul(IMatrix4f matrix) {
-        for (Vector4f vector : getVertexes()) {
+        for (var vector : getVertexes()) {
             vector.transform(matrix);
         }
         box = null;
@@ -99,13 +101,23 @@ public class OpenVoxelShape implements Iterable<Vector4f> {
     }
 
     public void add(OpenVoxelShape shape1) {
-        List<Vector4f> list = getVertexes();
+        var list = getVertexes();
         list.addAll(shape1.getVertexes());
         box = null;
     }
 
     public void add(IRectangle3f rect) {
         add(rect.getX(), rect.getY(), rect.getZ(), rect.getWidth(), rect.getHeight(), rect.getDepth());
+    }
+
+    public void add(IVector3f vertex) {
+        add(new Vector4f(vertex.getX(), vertex.getY(), vertex.getZ(), 1.0f));
+    }
+
+    public void add(Vector4f vertex) {
+        var list = getVertexes();
+        list.add(vertex);
+        box = null;
     }
 
     public boolean isEmpty() {
@@ -117,28 +129,19 @@ public class OpenVoxelShape implements Iterable<Vector4f> {
             return;
         }
         var list = getVertexes();
-        var addVertexes = new HashSet<Vector4f>(list.size());
-        var uniquesVertexes = new HashSet<Vector4f>(list.size());
-        // when vertex is used than 1, that means this a overlapping vertex.
-        for (var vector : list) {
-            if (addVertexes.contains(vector)) {
-                uniquesVertexes.remove(vector);
-            } else {
-                addVertexes.add(vector);
-                uniquesVertexes.add(vector);
-            }
-        }
+        var uniquesVertexes = new LinkedHashSet<Vector4f>(list.size());
+        uniquesVertexes.addAll(list);
         vertexes = Lists.newArrayList(uniquesVertexes);
     }
 
     public OpenVoxelShape copy() {
-        OpenVoxelShape shape = new OpenVoxelShape();
+        var shape = new OpenVoxelShape();
         shape.box = box;
         shape.aabb = aabb;
         if (vertexes != null) {
-            ArrayList<Vector4f> newVertexes = new ArrayList<>();
+            var newVertexes = new ArrayList<Vector4f>();
             newVertexes.ensureCapacity(vertexes.size());
-            for (Vector4f vector : vertexes) {
+            for (var vector : vertexes) {
                 newVertexes.add(vector.copy());
             }
             shape.vertexes = newVertexes;
@@ -146,6 +149,7 @@ public class OpenVoxelShape implements Iterable<Vector4f> {
         return shape;
     }
 
+    @Override
     public Iterator<Vector4f> iterator() {
         if (vertexes != null) {
             return vertexes.iterator();

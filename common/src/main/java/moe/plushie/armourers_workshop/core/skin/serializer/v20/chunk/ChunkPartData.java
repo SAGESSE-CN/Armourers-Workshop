@@ -15,10 +15,10 @@ import java.util.function.BiFunction;
 
 public class ChunkPartData {
 
-    final ChunkCubeData chunkCubes;
+    final ChunkGeometryData geometryData;
 
-    public ChunkPartData(ChunkCubeData chunkCubes) {
-        this.chunkCubes = chunkCubes;
+    public ChunkPartData(ChunkGeometryData geometryData) {
+        this.geometryData = geometryData;
     }
 
     public List<SkinPart> readFromStream(ChunkInputStream stream, IOConsumer2<ChunkReader, SkinPart.Builder> consumer) throws IOException {
@@ -32,10 +32,10 @@ public class ChunkPartData {
             var name = stream.readString();
             var partType = stream.readType(SkinPartTypes::byName);
             chunkTransform.readFromStream(stream);
-            var cubes = chunkCubes.readReferenceFromStream(stream);
+            var geometries = geometryData.readReferenceFromStream(stream);
             var builder = new SkinPart.Builder(partType);
             builder.name(name);
-            builder.cubes(cubes);
+            builder.geometries(geometries);
             builder.transform(chunkTransform.build());
             pairs.add(Pair.of(id, builder));
             relationship.put(id, parentId);
@@ -81,7 +81,7 @@ public class ChunkPartData {
             stream.writeType(part.getType());
             var transform = ChunkTransform.of(part.getTransform());
             transform.writeToStream(stream);
-            chunkCubes.writeReferenceToStream(part.getCubeData(), stream);
+            geometryData.writeReferenceToStream(part.getGeometries(), stream);
         }
         stream.writeChunk(ChunkPartWriter::new, it -> {
             for (var pair : pairs) {
@@ -94,7 +94,7 @@ public class ChunkPartData {
     private void eachPart(Collection<SkinPart> parts, Integer parent, BiFunction<Integer, SkinPart, Integer> consumer) {
         for (var part : parts) {
             var value = consumer.apply(parent, part);
-            eachPart(part.getParts(), value, consumer);
+            eachPart(part.getChildren(), value, consumer);
         }
     }
 }

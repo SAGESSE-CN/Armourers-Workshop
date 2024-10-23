@@ -2,7 +2,6 @@ package moe.plushie.armourers_workshop.utils;
 
 import moe.plushie.armourers_workshop.api.math.IMatrix3f;
 import moe.plushie.armourers_workshop.api.math.IMatrix4f;
-import moe.plushie.armourers_workshop.utils.math.Vector3f;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.ByteBuffer;
@@ -14,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -196,6 +196,130 @@ public class ObjectUtils {
         Collections.addAll(results, objects);
         return results;
     }
+
+
+    public static <S, T> Iterable<T> makeIterable(S[] values, Function<S, T> transform) {
+        return () -> new Iterator<T>() {
+            int index = 0;
+
+            @Override
+            public boolean hasNext() {
+                return index < values.length;
+            }
+
+            @Override
+            public T next() {
+                return transform.apply(values[index++]);
+            }
+        };
+    }
+
+    public static <S, T> Iterable<T> makeIterable(S[] values, Function<S, T> transform, Predicate<? super T> filter) {
+        return () -> new Iterator<T>() {
+            int index = 0;
+            T nextValue = null;
+
+            @Override
+            public boolean hasNext() {
+                return peek() != null;
+            }
+
+            @Override
+            public T next() {
+                T value = peek();
+                nextValue = null;
+                return value;
+            }
+
+            private T peek() {
+                while (nextValue == null && index < values.length) {
+                    T value = transform.apply(values[index++]);
+                    if (filter.test(value)) {
+                        nextValue = value;
+                        break;
+                    }
+                }
+                return nextValue;
+            }
+        };
+    }
+
+    public static <S, T> Iterable<T> makeIterable(Iterable<S> iterable, Function<S, T> transform) {
+        return () -> new Iterator<T>() {
+            final Iterator<S> iterator = iterable.iterator();
+
+            @Override
+            public boolean hasNext() {
+                return iterator.hasNext();
+            }
+
+            @Override
+            public T next() {
+                return transform.apply(iterator.next());
+            }
+        };
+    }
+
+    public static <S, T> Iterable<T> makeIterable(Iterable<S> iterable, Function<S, T> transform, Predicate<? super T> filter) {
+        return () -> new Iterator<T>() {
+            final Iterator<S> iterator = iterable.iterator();
+            T nextValue = null;
+
+            @Override
+            public boolean hasNext() {
+                return peek() != null;
+            }
+
+            @Override
+            public T next() {
+                T value = peek();
+                nextValue = null;
+                return value;
+            }
+
+            private T peek() {
+                while (nextValue == null && iterator.hasNext()) {
+                    T value = transform.apply(iterator.next());
+                    if (filter.test(value)) {
+                        nextValue = value;
+                        break;
+                    }
+                }
+                return nextValue;
+            }
+        };
+    }
+
+    public static <S, R> Iterable<R> collect(Iterable<? extends S> iterable, Class<? extends R> clazz) {
+        return () -> new Iterator<R>() {
+            final Iterator<? extends S> iterator = iterable.iterator();
+            R nextValue = null;
+
+            @Override
+            public boolean hasNext() {
+                return peek() != null;
+            }
+
+            @Override
+            public R next() {
+                R value = peek();
+                nextValue = null;
+                return value;
+            }
+
+            private R peek() {
+                while (nextValue == null && iterator.hasNext()) {
+                    S value = iterator.next();
+                    if (clazz.isInstance(value)) {
+                        nextValue = clazz.cast(value);
+                        break;
+                    }
+                }
+                return nextValue;
+            }
+        };
+    }
+
 
     // "<%s: 0x%x; arg1 = arg2; ...; argN-1 = argN>"
     public static String makeDescription(Object obj, Object... arguments) {

@@ -241,6 +241,7 @@ public class ConcurrentBufferCompiler {
         final boolean isGrowing;
         final boolean isTranslucent;
         final boolean isOutline;
+        final boolean isUsingIndex;
 
         final float polygonOffset;
         final ISkinPartType partType;
@@ -266,12 +267,13 @@ public class ConcurrentBufferCompiler {
             this.isGrowing = SkinRenderType.isGrowing(renderType);
             this.isTranslucent = SkinRenderType.isTranslucent(renderType);
             this.isOutline = isOutline;
+            this.isUsingIndex = SkinRenderType.isUsingIndex(renderType);
         }
 
         public void upload(VertexBufferObject bufferObject) {
-            this.arrayObject = AbstractVertexArrayObject.create(format, vertexOffset, bufferObject, INDEXER);
+            this.indexObject = isUsingIndex ? INDEXER : null;
             this.bufferObject = bufferObject;
-            this.indexObject = INDEXER;
+            this.arrayObject = AbstractVertexArrayObject.create(format, vertexOffset, bufferObject, indexObject);
             this.isCompiled = true;
         }
 

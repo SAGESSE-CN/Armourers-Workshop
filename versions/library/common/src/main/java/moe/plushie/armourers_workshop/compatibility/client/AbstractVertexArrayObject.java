@@ -23,7 +23,9 @@ public class AbstractVertexArrayObject extends VertexArrayObject {
         // so we need use index buffer to control size of the vertex data.
         arrayObject.bind();
         bufferObject.bind();
-        indexObject.bind();
+        if (indexObject != null) {
+            indexObject.bind();
+        }
 
         // the vertex offset no longer supported in vanilla,
         // so we need a special version of the format setup.

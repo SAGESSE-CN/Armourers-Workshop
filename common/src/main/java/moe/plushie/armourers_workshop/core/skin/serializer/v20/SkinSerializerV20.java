@@ -6,7 +6,7 @@ import moe.plushie.armourers_workshop.core.skin.serializer.SkinFileOptions;
 import moe.plushie.armourers_workshop.core.skin.serializer.io.IInputStream;
 import moe.plushie.armourers_workshop.core.skin.serializer.io.IOutputStream;
 import moe.plushie.armourers_workshop.core.skin.serializer.io.ISkinSerializer;
-import moe.plushie.armourers_workshop.core.skin.serializer.v20.coder.ChunkCubeCoders;
+import moe.plushie.armourers_workshop.core.skin.serializer.v20.geometry.ChunkGeometrySerializers;
 
 import java.io.IOException;
 
@@ -24,7 +24,7 @@ public final class SkinSerializerV20 implements ISkinSerializer {
         // stream = IDataOutputStream.of(new DataOutputStream(checksum));
         stream.writeInt(0); // reserved data 1
         stream.writeInt(0); // reserved data 2
-        var context = ChunkCubeCoders.createEncodeContext(skin, options);
+        var context = ChunkGeometrySerializers.createEncodeContext(skin, options);
         ChunkSerializers.writeToStream(skin, stream, context);
         stream.writeInt(0); // crc32
     }
@@ -33,7 +33,7 @@ public final class SkinSerializerV20 implements ISkinSerializer {
     public Skin readFromStream(IInputStream stream, SkinFileOptions options) throws IOException {
         stream.readInt(); // reserved data 1
         stream.readInt(); // reserved data 2
-        var context = ChunkCubeCoders.createDecodeContext(options);
+        var context = ChunkGeometrySerializers.createDecodeContext(options);
         return ChunkSerializers.readFromStream(stream, context);
     }
 
@@ -41,7 +41,7 @@ public final class SkinSerializerV20 implements ISkinSerializer {
     public SkinFileHeader readInfoFromStream(IInputStream stream, SkinFileOptions options) throws IOException {
         stream.readInt(); // reserved data 1
         stream.readInt(); // reserved data 2
-        var context = ChunkCubeCoders.createDecodeContext(options);
+        var context = ChunkGeometrySerializers.createDecodeContext(options);
         var pair = ChunkSerializers.readInfoFromStream(stream, context);
         return SkinFileHeader.optimized(options.getFileVersion(), pair.getKey(), pair.getValue());
     }

@@ -37,7 +37,7 @@ public class SkinPaintType implements ISkinPaintType {
     }
 
     @Override
-    public ITextureKey getTexture() {
+    public ITextureKey getTextureKey() {
         return this.texture;
     }
 

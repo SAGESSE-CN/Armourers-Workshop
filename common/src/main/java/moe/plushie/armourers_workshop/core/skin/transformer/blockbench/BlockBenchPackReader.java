@@ -30,6 +30,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
+/// https://www.blockbench.net/wiki/docs/bbmodel
+/// https://github.com/JannisX11/blockbench/blob/master/js/io/formats/bbmodel.js
 public class BlockBenchPackReader {
 
     protected final String name;
@@ -98,6 +100,7 @@ public class BlockBenchPackReader {
             });
             case "mesh" -> parseElementObject(BlockBenchMesh.Builder::new, builder -> {
                 object.at("origin", it -> builder.origin(it.vector3fValue()));
+                //object.at("origin", it -> builder.origin(it.vector3fValue()));
                 object.at("rotation", it -> builder.rotation(it.vector3fValue()));
 
                 object.at("allow_mirror_modeling", it -> builder.allowMirrorModeling(it.boolValue()));
