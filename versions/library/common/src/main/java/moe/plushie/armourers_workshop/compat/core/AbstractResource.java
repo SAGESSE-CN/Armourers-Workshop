@@ -7,9 +7,9 @@ import java.io.InputStream;
 import java.util.function.Function;
 
 @Available("[20, )")
-public class AbstractResource {
+public class AbstractResource extends Resource {
 
-    public static Resource transform(Resource resource, Function<InputStream, InputStream> transformer) {
-        return new Resource(resource.source(), () -> transformer.apply(resource.open()), resource::metadata);
+    public AbstractResource(Resource resource, Function<InputStream, InputStream> transformer) {
+        super(resource.source(), () -> transformer.apply(resource.open()), resource::metadata);
     }
 }

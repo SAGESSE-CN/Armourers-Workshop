@@ -7,11 +7,12 @@ import moe.plushie.armourers_workshop.init.ModLog;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import java.util.function.Function;
 
 public class ShaderPreprocessor {
 
-    private static final Map<String, SourceBuilder> BUILDERS = Collections.immutableMap(it -> {
-        it.put("optifine", builder -> {
+    private static final Map<String, Transformer> TRANSFORMERS = Collections.immutableMap(it -> {
+        it.put("optifine/vertex", builder -> {
             builder.attribute("aw_UV0", "vec2", "vaUV0", "mat4", "aw_TextureMatrix", "vec2($2 * vec4($1, 1, 1))");
             builder.attribute("aw_UV1", "ivec2", "vaUV1", "mat4", "aw_OverlayTextureMatrix", "ivec2($2 * vec4($1, 1, 1))");
             builder.attribute("aw_UV2", "ivec2", "vaUV2", "mat4", "aw_LightmapTextureMatrix", "ivec2($2 * vec4($1, 1, 1))");
@@ -19,7 +20,7 @@ public class ShaderPreprocessor {
             builder.attribute("aw_Normal", "vec3", "vaNormal", "mat3", "aw_NormalMatrix", "($2 * $1)");
             builder.attribute("aw_Position", "vec3", "vaPosition", "mat4", "aw_ModelViewMatrix", "vec3($2 * vec4($1, 1))");
         });
-        it.put("iris", builder -> {
+        it.put("iris/vertex", builder -> {
             builder.attribute("aw_UV0", "vec2", "iris_UV0", "mat4", "aw_TextureMatrix", "vec2($2 * vec4($1, 1, 1))");
             builder.attribute("aw_UV1", "ivec2", "iris_UV1", "mat4", "aw_OverlayTextureMatrix", "ivec2($2 * vec4($1, 1, 1))");
             builder.attribute("aw_UV2", "ivec2", "iris_UV2", "mat4", "aw_LightmapTextureMatrix", "ivec2($2 * vec4($1, 1, 1))");
@@ -27,7 +28,7 @@ public class ShaderPreprocessor {
             builder.attribute("aw_Normal", "vec3", "iris_Normal", "mat3", "aw_NormalMatrix", "($2 * $1)");
             builder.attribute("aw_Position", "vec3", "iris_Position", "mat4", "aw_ModelViewMatrix", "vec3($2 * vec4($1, 1))");
         });
-        it.put("canvas", builder -> {
+        it.put("canvas/vertex", builder -> {
             //builder.attribute("aw_UV0", "vec2", "iris_UV0", "mat4", "aw_TextureMatrix", "vec2($2 * vec4($1, 1, 1))");
             //builder.attribute("aw_UV1", "ivec2", "iris_UV1", "mat4", "aw_OverlayTextureMatrix", "ivec2($2 * vec4($1, 1, 1))");
             //builder.attribute("aw_UV2", "ivec2", "iris_UV2", "mat4", "aw_LightmapTextureMatrix", "ivec2($2 * vec4($1, 1, 1))");
@@ -35,7 +36,7 @@ public class ShaderPreprocessor {
             //builder.attribute("aw_Normal", "vec3", "iris_Normal", "mat3", "aw_NormalMatrix", "($2 * $1)");
             //builder.attribute("aw_Position", "vec3", "iris_Position", "mat4", "aw_ModelViewMatrix", "vec3($2 * vec4($1, 1))");
         });
-        it.put("vanilla", builder -> {
+        it.put("vanilla/vertex", builder -> {
             builder.attribute("aw_UV0", "vec2", "UV0", "mat4", "aw_TextureMatrix", "vec2($2 * vec4($1, 1, 1))");
             builder.attribute("aw_UV1", "ivec2", "UV1", "mat4", "aw_OverlayTextureMatrix", "ivec2($2 * vec4($1, 1, 1))");
             builder.attribute("aw_UV2", "ivec2", "UV2", "mat4", "aw_LightmapTextureMatrix", "ivec2($2 * vec4($1, 1, 1))");
@@ -48,21 +49,24 @@ public class ShaderPreprocessor {
     private final String name;
     private final int version;
 
-    public ShaderPreprocessor(String name, int version) {
+    private final Function<String, String> transformer;
+
+    private ShaderPreprocessor(String name, int version, Function<String, String> transformer) {
         this.name = name;
         this.version = version;
+        this.transformer = transformer;
+    }
+
+    public static ShaderPreprocessor create(String name, int version) {
+        var transformer = TRANSFORMERS.get(name);
+        if (transformer == null) {
+            return null;
+        }
+        return new ShaderPreprocessor(name, version, source -> transformer.build(new Builder(name, source)));
     }
 
     public String process(String source) {
-        var sourceBuilder = BUILDERS.get(name);
-        if (sourceBuilder != null) {
-            return sourceBuilder.build(new Builder(name, source));
-        }
-        return source;
-    }
-
-    public String name() {
-        return name;
+        return transformer.apply(source);
     }
 
     public static class Builder {
@@ -177,7 +181,7 @@ public class ShaderPreprocessor {
         }
     }
 
-    public interface SourceBuilder {
+    private interface Transformer {
 
         void setup(Builder builder);
 

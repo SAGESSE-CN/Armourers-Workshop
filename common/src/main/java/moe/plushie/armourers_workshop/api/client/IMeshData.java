@@ -10,6 +10,10 @@ public interface IMeshData {
 
     int vertexCount();
 
+    default void draw() {
+        // nop
+    }
+
     default void retain() {
     }
 

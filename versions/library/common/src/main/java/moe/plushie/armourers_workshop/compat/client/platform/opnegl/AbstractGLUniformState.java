@@ -6,6 +6,7 @@ import moe.plushie.armourers_workshop.api.annotation.OnlyIn;
 import moe.plushie.armourers_workshop.core.math.OpenMatrix3f;
 import moe.plushie.armourers_workshop.core.math.OpenMatrix4f;
 import moe.plushie.armourers_workshop.core.math.OpenVector4f;
+import moe.plushie.armourers_workshop.core.utils.Collections;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -64,6 +65,10 @@ public class AbstractGLUniformState {
     }
 
     protected List<AbstractGLUniform<?>> get(int program) {
+        // ignore the invalid program
+        if (program <= 0) {
+            return Collections.emptyList();
+        }
         var uniforms = values.get(program);
         if (uniforms != null) {
             return uniforms;

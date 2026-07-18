@@ -3,6 +3,7 @@ package moe.plushie.armourers_workshop.compat.mixin.client.shader;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import moe.plushie.armourers_workshop.api.annotation.Available;
 import moe.plushie.armourers_workshop.api.annotation.Conditional;
+import moe.plushie.armourers_workshop.compat.client.renderer.shader.AbstractIrisShaderTransformer;
 import moe.plushie.armourers_workshop.compat.core.AbstractResourceProvider;
 import net.minecraft.server.packs.resources.ResourceProvider;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 public class ShaderIrisMixin {
 
     @ModifyVariable(method = "<init>", at = @At(value = "HEAD"), argsOnly = true, remap = false)
-    private static ResourceProvider aw2$createIrisShader(ResourceProvider arg1, ResourceProvider arg2, String arg3, VertexFormat arg4) {
-        return new AbstractResourceProvider(arg1, "iris");
+    private static ResourceProvider aw2$createIrisShader(ResourceProvider provider, ResourceProvider arg2, String arg3, VertexFormat arg4) {
+        return new AbstractResourceProvider(provider, new AbstractIrisShaderTransformer(2));
     }
 }

@@ -29,11 +29,11 @@ public class AbstractRenderPipeline extends AbstractRenderPipelineImpl implement
 
     /// Get a render pipeline from the render group.
     public static AbstractRenderPipeline of(IRenderType renderType) {
-        var attachmentType = AbstractRenderAttachment.find(((SkinRenderType) renderType).group());
-        if (attachmentType == null) {
+        var anchorType = AbstractRenderAnchor.find(((SkinRenderType) renderType).group());
+        if (anchorType == null) {
             return null;
         }
-        return DataContainer.of(attachmentType, KEY);
+        return DataContainer.of(anchorType, KEY);
     }
 
     /// Callback the render pipeline before attached render type will start rendering.

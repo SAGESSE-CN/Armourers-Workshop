@@ -11,41 +11,44 @@ import java.io.InputStream;
 import java.util.function.Function;
 
 @Available("[18, 19)")
-public class AbstractResource {
+public class AbstractResource implements Resource {
 
-    public static Resource transform(Resource resource, Function<InputStream, InputStream> transformer) {
-        return new Resource() {
+    private final Resource resource;
+    private final Function<InputStream, InputStream> transformer;
 
-            @Override
-            public ResourceLocation getLocation() {
-                return resource.getLocation();
-            }
+    public AbstractResource(Resource resource, Function<InputStream, InputStream> transformer) {
+        this.resource = resource;
+        this.transformer = transformer;
+    }
 
-            @Override
-            public InputStream getInputStream() {
-                return transformer.apply(resource.getInputStream());
-            }
+    @Override
+    public ResourceLocation getLocation() {
+        return resource.getLocation();
+    }
 
-            @Override
-            public boolean hasMetadata() {
-                return resource.hasMetadata();
-            }
+    @Override
+    public InputStream getInputStream() {
+        return transformer.apply(resource.getInputStream());
+    }
 
-            @Nullable
-            @Override
-            public <T> T getMetadata(MetadataSectionSerializer<T> metadataSectionSerializer) {
-                return resource.getMetadata(metadataSectionSerializer);
-            }
+    @Override
+    public boolean hasMetadata() {
+        return resource.hasMetadata();
+    }
 
-            @Override
-            public String getSourceName() {
-                return resource.getSourceName();
-            }
+    @Nullable
+    @Override
+    public <T> T getMetadata(MetadataSectionSerializer<T> metadataSectionSerializer) {
+        return resource.getMetadata(metadataSectionSerializer);
+    }
 
-            @Override
-            public void close() throws IOException {
-                resource.close();
-            }
-        };
+    @Override
+    public String getSourceName() {
+        return resource.getSourceName();
+    }
+
+    @Override
+    public void close() throws IOException {
+        resource.close();
     }
 }

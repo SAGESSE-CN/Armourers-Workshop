@@ -1,13 +1,13 @@
 package moe.plushie.armourers_workshop.compat.core;
 
 import moe.plushie.armourers_workshop.api.annotation.Available;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceProvider;
 
 import java.util.Optional;
 
-@Available("[19, 26)")
+@Available("[26, )")
 public class AbstractResourceProvider implements ResourceProvider {
 
     private final ResourceProvider provider;
@@ -19,12 +19,12 @@ public class AbstractResourceProvider implements ResourceProvider {
     }
 
     @Override
-    public Optional<Resource> getResource(ResourceLocation location) {
-        var resource = this.provider.getResource(location);
+    public Optional<Resource> getResource(Identifier identifier) {
+        var resource = this.provider.getResource(identifier);
         if (resource.isEmpty()) {
             return resource;
         }
-        var transformer = this.transformer.withStream(AbstractResourceKey.wrap(location));
+        var transformer = this.transformer.withStream(AbstractResourceKey.wrap(identifier));
         if (transformer == null) {
             return resource;
         }

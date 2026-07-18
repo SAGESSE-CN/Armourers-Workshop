@@ -3,7 +3,7 @@ package moe.plushie.armourers_workshop.compat.mixin.client.shader;
 import moe.plushie.armourers_workshop.api.annotation.Available;
 import moe.plushie.armourers_workshop.api.annotation.Conditional;
 import moe.plushie.armourers_workshop.compat.client.AbstractClientHooks;
-import moe.plushie.armourers_workshop.core.client.shader.ShaderPreprocessor;
+import moe.plushie.armourers_workshop.core.client.shader.Shader;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
@@ -21,9 +21,22 @@ public class ShaderIrisMixin {
     // ordinal 3 = tessControl
     // ordinal 4 = tessEval
     // ordinal 5 = fragment
+
     @ModifyVariable(method = "link", at = @At("HEAD"), argsOnly = true, ordinal = 1, remap = false)
-    private static String aw2$createIrisVertexShader(String vertex) {
+    private static String aw2$compileVertexShader(String vertex) {
         AbstractClientHooks.createShaders();
-        return new ShaderPreprocessor("iris", 3).process(vertex);
+        return Shader.patch(vertex, "iris/vertex", 3);
+    }
+
+    @ModifyVariable(method = "link", at = @At("HEAD"), argsOnly = true, ordinal = 2, remap = false)
+    private static String aw2$compileGeometryShader(String vertex) {
+        AbstractClientHooks.createShaders();
+        return Shader.patch(vertex, "iris/geometry", 3);
+    }
+
+    @ModifyVariable(method = "link", at = @At("HEAD"), argsOnly = true, ordinal = 5, remap = false)
+    private static String aw2$compileFragmentShader(String vertex) {
+        AbstractClientHooks.createShaders();
+        return Shader.patch(vertex, "iris/fragment", 3);
     }
 }

@@ -6,7 +6,8 @@
   "client": [
     "addon/RoughlyEnoughItemsMixin",
     "client/other/GlStateManagerMixin",
-    "client/bugfix/WindowIconMixin"
+    "client/bugfix/WindowIconMixin",
+    "client/bugfix/PreDrawArraysMixin"
   ],
   "mixins": [
     "addon/KubeJSMixin",

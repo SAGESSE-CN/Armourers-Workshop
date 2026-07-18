@@ -15,6 +15,7 @@ import java.nio.FloatBuffer;
 public class AbstractGLDeviceImpl extends AbstractGLDevice {
 
     private final FloatBuffer buffer = MatrixUtils.createFloatBuffer(16);
+    private final AbstractGLShader shader = new AbstractGLShader();
 
     @Override
     public void beginTransaction() {
@@ -60,6 +61,18 @@ public class AbstractGLDeviceImpl extends AbstractGLDevice {
         GL15.glPopMatrix();
         // restore custom matrices.
         super.endTransaction();
+    }
+
+    @Override
+    public void beginGroup() {
+        super.beginGroup();
+        shader.activate();
+    }
+
+    @Override
+    public void endGroup() {
+        shader.deactivate();
+        super.endGroup();
     }
 
     @Override

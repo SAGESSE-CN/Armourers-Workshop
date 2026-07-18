@@ -57,9 +57,7 @@ public class AbstractGLDevice implements AbstractRenderDevice {
         uniforms.applyVariables(objects.programId);
 
         // submit draw into renderer.
-        if (meshData instanceof Runnable handler) {
-            handler.run();
-        }
+        meshData.draw();
     }
 
     @Override

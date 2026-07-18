@@ -1,0 +1,14 @@
+package moe.plushie.armourers_workshop.compat.client.renderer.shader;
+
+import moe.plushie.armourers_workshop.api.annotation.Available;
+import moe.plushie.armourers_workshop.core.utils.Collections;
+import moe.plushie.armourers_workshop.core.utils.OpenResourceKey;
+
+import java.util.List;
+
+@Available("[16, 18)")
+public class AbstractDefaultShaderSelector {
+
+    public static final List<OpenResourceKey> DEFAULT = Collections.immutableList(builder -> {
+    });
+}

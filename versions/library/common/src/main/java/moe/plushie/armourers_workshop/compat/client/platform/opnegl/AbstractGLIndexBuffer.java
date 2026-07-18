@@ -2,7 +2,7 @@ package moe.plushie.armourers_workshop.compat.client.platform.opnegl;
 
 import moe.plushie.armourers_workshop.core.math.OpenMath;
 import moe.plushie.armourers_workshop.init.ModLog;
-import org.lwjgl.opengl.GL15;
+import org.lwjgl.opengl.GL20;
 
 import java.nio.ByteBuffer;
 import java.util.function.IntConsumer;
@@ -22,15 +22,15 @@ public class AbstractGLIndexBuffer {
         this.vertexStride = vertexStride;
         this.indexStride = indexStride;
         this.generator = generator;
-        this.id = GL15.glGenBuffers();
+        this.id = GL20.glGenBuffers();
     }
 
     public void unbind() {
-        GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, 0);
+        GL20.glBindBuffer(GL20.GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
     public void bind() {
-        GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, id);
+        GL20.glBindBuffer(GL20.GL_ELEMENT_ARRAY_BUFFER, id);
         uploadStorageIfNeeded(capacity);
     }
 
@@ -47,18 +47,19 @@ public class AbstractGLIndexBuffer {
         total = OpenMath.roundToward(total * 2, 256);
         ModLog.debug("Growing index buffer from {} to {}.", size, total);
         var indexType = Type.least(total);
-        var bufferSize = OpenMath.roundToward(total * indexType.bytes * indexStride, 4);
-        GL15.glBufferData(GL15.GL_ELEMENT_ARRAY_BUFFER, bufferSize, GL15.GL_DYNAMIC_DRAW);
-        var buffer = GL15.glMapBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, GL15.GL_WRITE_ONLY);
+        var bufferSize = OpenMath.roundToward(total * indexType.bytes, 4);
+        GL20.glBufferData(GL20.GL_ELEMENT_ARRAY_BUFFER, bufferSize, GL20.GL_DYNAMIC_DRAW);
+        var buffer = GL20.glMapBuffer(GL20.GL_ELEMENT_ARRAY_BUFFER, GL20.GL_WRITE_ONLY);
         if (buffer == null) {
             throw new RuntimeException("Failed to map GL buffer");
         }
         type = indexType;
+        var count = total / indexStride;
         var builder = indexType.builder(buffer);
-        for (var k = 0; k < total; k += vertexStride) {
-            generator.accept(builder, k);
+        for (var i = 0; i < count; ++i) {
+            generator.accept(builder, i * vertexStride);
         }
-        GL15.glUnmapBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER);
+        GL20.glUnmapBuffer(GL20.GL_ELEMENT_ARRAY_BUFFER);
         size = total;
     }
 
@@ -71,7 +72,7 @@ public class AbstractGLIndexBuffer {
     }
 
     public enum Type {
-        BYTE(GL15.GL_UNSIGNED_BYTE, 1), SHORT(GL15.GL_UNSIGNED_SHORT, 2), INT(GL15.GL_UNSIGNED_INT, 4);
+        BYTE(GL20.GL_UNSIGNED_BYTE, 1), SHORT(GL20.GL_UNSIGNED_SHORT, 2), INT(GL20.GL_UNSIGNED_INT, 4);
 
         public final int asGLType;
         public final int bytes;

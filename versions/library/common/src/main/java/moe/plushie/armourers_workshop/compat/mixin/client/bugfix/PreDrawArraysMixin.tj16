@@ -1,0 +1,29 @@
+package moe.plushie.armourers_workshop.compat.mixin.client.bugfix;
+
+import moe.plushie.armourers_workshop.api.annotation.Available;
+import moe.plushie.armourers_workshop.api.annotation.Conditional;
+import moe.plushie.armourers_workshop.compat.client.AbstractClientHooks;
+import moe.plushie.armourers_workshop.utils.RenderSystem;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+@Available("[16, 18)")
+@Conditional("optifine")
+@Mixin(targets = "net.optifine.shaders.SVertexBuilder")
+public class PreDrawArraysMixin {
+
+    @Inject(method = "preDrawArrays", at = @At("HEAD"))
+    private static void aw2$preDrawArrays(CallbackInfoReturnable<Boolean> cir) {
+        // in the optifine will draw pass with special config,
+        // so we can't safe hook _drawArrays.
+        // ```java
+        //   preDrawArrays();
+        //     GlStateManager._drawArrays();
+        //   postDrawArrays();
+        // ```
+        AbstractClientHooks.drawElements();
+        RenderSystem.setDrawElementsCallback(null);
+    }
+}

@@ -3,7 +3,7 @@ package moe.plushie.armourers_workshop.compat.mixin.client.shader;
 import moe.plushie.armourers_workshop.api.annotation.Available;
 import moe.plushie.armourers_workshop.api.annotation.Conditional;
 import moe.plushie.armourers_workshop.compat.client.AbstractClientHooks;
-import moe.plushie.armourers_workshop.core.client.shader.ShaderPreprocessor;
+import moe.plushie.armourers_workshop.core.client.shader.Shader;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
@@ -16,8 +16,18 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 public class ShaderOptifineMixin {
 
     @ModifyArg(method = "createVertShader", at = @At(value = "INVOKE", target = "Lnet/optifine/shaders/Shaders;shaderSource(ILjava/lang/String;)V"), remap = false)
-    private static String aw2$createVertShader(int shader, String value) {
+    private static String aw2$compileVertexShader(int shader, String source) {
         AbstractClientHooks.createShaders();
-        return new ShaderPreprocessor("optifine", 2).process(value);
+        return Shader.patch(source, "optifine/vertex", 1);
+    }
+
+    @ModifyArg(method = "createGeomShader", at = @At(value = "INVOKE", target = "Lnet/optifine/shaders/Shaders;shaderSource(ILjava/lang/String;)V"), remap = false)
+    private static String aw2$compileGeometryShader(int shader, String source) {
+        return Shader.patch(source, "optifine/geometry", 1);
+    }
+
+    @ModifyArg(method = "createFragShader", at = @At(value = "INVOKE", target = "Lnet/optifine/shaders/Shaders;shaderSource(ILjava/lang/String;)V"), remap = false)
+    private static String aw2$compileFragmentShader(int shader, String source) {
+        return Shader.patch(source, "optifine/fragment", 1);
     }
 }

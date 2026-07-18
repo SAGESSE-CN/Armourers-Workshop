@@ -12,24 +12,26 @@ import java.io.InputStream;
 import java.util.function.Function;
 
 @Available("[18, 19)")
-public abstract class AbstractResourceProviderImpl implements ResourceProvider {
+public class AbstractResourceProvider implements ResourceProvider {
 
-    private final ResourceProvider impl;
+    private final ResourceProvider provider;
+    private final AbstractResourceTransformer transformer;
 
-    public AbstractResourceProviderImpl(ResourceProvider provider) {
-        this.impl = provider;
+    public AbstractResourceProvider(ResourceProvider provider, AbstractResourceTransformer transformer) {
+        this.provider = provider;
+        this.transformer = transformer;
     }
 
     @Override
     public Resource getResource(ResourceLocation location) throws IOException {
-        var resource = impl.getResource(location);
-        var transformer = createTransformer(AbstractResourceKey.wrap(location));
+        var resource = this.provider.getResource(location);
+        if (resource == null) {
+            return resource;
+        }
+        var transformer = this.transformer.withStream(AbstractResourceKey.wrap(location));
         if (transformer == null) {
             return resource;
         }
-        return AbstractResource.transform(resource, transformer);
+        return new AbstractResource(resource, transformer);
     }
-
-    @Nullable
-    protected abstract Function<InputStream, InputStream> createTransformer(OpenResourceKey key);
 }

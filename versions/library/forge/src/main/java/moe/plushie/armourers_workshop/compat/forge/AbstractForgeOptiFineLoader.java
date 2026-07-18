@@ -2,8 +2,11 @@ package moe.plushie.armourers_workshop.compat.forge;
 
 import com.google.common.primitives.Bytes;
 import moe.plushie.armourers_workshop.api.annotation.Available;
+import moe.plushie.armourers_workshop.core.utils.Collections;
+import moe.plushie.armourers_workshop.core.utils.Reflect;
+import moe.plushie.armourers_workshop.core.utils.StreamUtils;
+import moe.plushie.armourers_workshop.init.ModLog;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -16,34 +19,35 @@ public class AbstractForgeOptiFineLoader {
 
     /// Get the optifine version from the environment.
     public static String getVersion() {
-        try {
-            var clazz = (Class<?>) System.getProperties().get("optifine.OptiFineResourceLocator.class");
-            if (clazz == null) {
-                return null;
-            }
-            var method = clazz.getDeclaredMethod("getOptiFineResourceStream", String.class);
-            var inputStream = (InputStream) method.invoke(clazz, "net/optifine/Config.class");
-            if (inputStream == null) {
-                return null;
-            }
-            return readVersion(inputStream);
-        } catch (Exception ignored) {
-            return null;
+        // the optifine will register loader class into environments.
+        var clazz = (Class<?>) System.getProperties().get("optifine.OptiFineResourceLocator.class");
+        if (clazz == null) {
+            return null; // the optifine is not loaded.
         }
+        // the optifine maybe has multiple versions implements.
+        var configs = Collections.newList("net/optifine/Config.class", "srg/net/optifine/Config.class", "notch/net/optifine/Config.class");
+        for (var config : configs) {
+            var result = Reflect.of(clazz).invoke("getOptiFineResourceStream", config);
+            if (result == null) {
+                continue; // can't found the config class, ignore.
+            }
+            try (var inputStream = (InputStream) result) {
+                return readVersion(inputStream);
+            } catch (Exception exception) {
+                ModLog.error("Can't parse the optifine version from the config class.", exception);
+                return null;
+            }
+        }
+        ModLog.error("Can't found the optifine config class.");
+        return null;
     }
 
     ///  Get the optifine version from the byte code.
     private static String readVersion(InputStream inputStream) throws IOException {
-        var size = 0;
-        var chunk = new byte[8192];
-        var buffer = new ByteArrayOutputStream();
-        while ((size = inputStream.read(chunk)) != -1) {
-            buffer.write(chunk, 0, size);
-        }
-        var bytes = buffer.toByteArray();
+        var bytes = StreamUtils.readStreamToByteArray(inputStream);
         var pos = Bytes.indexOf(bytes, PATTERN);
         if (pos == -1) {
-            return null;
+            throw new RuntimeException("Can't found the optifine version in the config class.");
         }
         pos += PATTERN.length + 2;
         var length = bytes[pos - 2] << 8 | bytes[pos - 1];

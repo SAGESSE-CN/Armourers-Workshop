@@ -18,7 +18,7 @@ import java.util.function.Supplier;
 
 @Available("[16, 26)")
 @OnlyIn(Dist.CLIENT)
-public class AbstractRenderAttachment {
+public class AbstractRenderAnchor {
 
     private static final Map<SkinRenderType.Group, LazyValue<IRenderType>> ATTACH_POINTS = Collections.immutableMap(it -> {
         it.put(SkinRenderType.Group.SOLID_BLOCKS, normal(Sheets::solidBlockSheet));

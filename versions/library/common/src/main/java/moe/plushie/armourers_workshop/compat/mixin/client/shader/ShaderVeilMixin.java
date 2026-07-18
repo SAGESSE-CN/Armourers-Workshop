@@ -2,9 +2,8 @@ package moe.plushie.armourers_workshop.compat.mixin.client.shader;
 
 import moe.plushie.armourers_workshop.api.annotation.Available;
 import moe.plushie.armourers_workshop.api.annotation.Conditional;
-import moe.plushie.armourers_workshop.compat.client.renderer.shader.AbstractShaderSelector;
+import moe.plushie.armourers_workshop.compat.client.renderer.shader.AbstractVanillaShaderTransformer;
 import moe.plushie.armourers_workshop.compat.core.AbstractResourceKey;
-import moe.plushie.armourers_workshop.core.client.shader.ShaderPreprocessor;
 import moe.plushie.armourers_workshop.core.utils.Objects;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
@@ -25,9 +24,13 @@ public class ShaderVeilMixin {
     private static String aw2$processSource(String source, Map<String, Object> customProgramData, @Nullable String shaderInstance, @Nullable ResourceLocation name) {
         // is a patched vanilla shader?
         var key = Objects.flatMap(name, AbstractResourceKey::wrap);
-        if (AbstractShaderSelector.DEFAULT.contains(key)) {
-            return new ShaderPreprocessor("vanilla", 2).process(source);
+        if (key == null) {
+            return source;
         }
-        return source;
+        var transformer = new AbstractVanillaShaderTransformer(2).withString(key);
+        if (transformer == null) {
+            return source;
+        }
+        return transformer.apply(source);
     }
 }

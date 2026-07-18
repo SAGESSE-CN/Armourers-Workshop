@@ -44,7 +44,7 @@ public class AbstractGLVertexBuffer extends ReferenceCounted implements IVertexB
         }
 
         // Fallback to non-VAO rendering if vertex array objects are not supported (OpenGL 2.0+ compatibility).
-        if (!AbstractGLCapabilities.GL_ARB_vertex_array_object) {
+        if (!AbstractGLCapabilities.vertex_array_object) {
             reference.binder = Binder.FALLBACK;
         }
 
@@ -85,7 +85,7 @@ public class AbstractGLVertexBuffer extends ReferenceCounted implements IVertexB
         unbind();
     }
 
-    private class Reference extends MeshData implements Runnable {
+    private class Reference extends MeshData {
 
         private final int offset;
 
@@ -100,7 +100,7 @@ public class AbstractGLVertexBuffer extends ReferenceCounted implements IVertexB
             super(null, vertexCount, format);
             this.offset = offset;
             // ensure the index capacity contains this slice.
-            Objects.ifPresent(indexer, it -> it.ensureCapacity(vertexCount));
+            Objects.ifPresent(indexer, it -> it.ensureCapacity(it.stride(vertexCount)));
         }
 
         @Override
@@ -114,7 +114,7 @@ public class AbstractGLVertexBuffer extends ReferenceCounted implements IVertexB
         }
 
         @Override
-        public void run() {
+        public void draw() {
             binder.bind(this);
             invoker.draw(0, vertexCount, indexer);
             binder.unbind(this);
@@ -240,4 +240,3 @@ public class AbstractGLVertexBuffer extends ReferenceCounted implements IVertexB
         }
     }
 }
-

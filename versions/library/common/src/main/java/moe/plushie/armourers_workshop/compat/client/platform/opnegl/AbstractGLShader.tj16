@@ -1,0 +1,194 @@
+package moe.plushie.armourers_workshop.compat.client.platform.opnegl;
+
+import moe.plushie.armourers_workshop.api.annotation.Available;
+import moe.plushie.armourers_workshop.api.annotation.Dist;
+import moe.plushie.armourers_workshop.api.annotation.OnlyIn;
+import moe.plushie.armourers_workshop.core.client.shader.Shader;
+import moe.plushie.armourers_workshop.core.math.OpenVector4f;
+import moe.plushie.armourers_workshop.init.ModLog;
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL20;
+
+import java.util.HashMap;
+
+@Available("[16, 18)")
+@OnlyIn(Dist.CLIENT)
+public class AbstractGLShader {
+
+    private static final String VERTEX_SHADER = String.join("\n",
+            "#version 120",
+            "varying vec4 vertexColor;",
+            "varying vec2 texCoord0;",
+            "varying vec2 texCoord2;",
+            "varying vec3 vertexNormal;",
+            "",
+            "void main() {",
+            "    vertexColor = gl_Color;",
+            "    texCoord0 = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;",
+            "    texCoord2 = (gl_TextureMatrix[2] * gl_MultiTexCoord2).xy;",
+            "#ifdef LIGHTING",
+            "    vertexNormal = normalize(gl_NormalMatrix * gl_Normal);",
+            "#endif",
+            "    gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;",
+            "}"
+    );
+
+    private static final String FRAGMENT_SHADER = String.join("\n",
+            "#version 120",
+            "uniform sampler2D Sampler0;",
+            "uniform sampler2D Sampler2;",
+            "uniform vec4 ColorModulator;",
+            "varying vec4 vertexColor;",
+            "varying vec2 texCoord0;",
+            "varying vec2 texCoord2;",
+            "varying vec3 vertexNormal;",
+            "",
+            "vec4 mixLight(vec3 normal, vec4 color) {",
+            "    vec3 lightDir0 = normalize(gl_LightSource[0].position.xyz);",
+            "    vec3 lightDir1 = normalize(gl_LightSource[1].position.xyz);",
+            "    float light0 = max(0.0, dot(lightDir0, normal));",
+            "    float light1 = max(0.0, dot(lightDir1, normal));",
+            "    float lightAccum = min(1.0, (light0 + light1) * 0.6 + 0.4);",
+            "    return vec4(color.rgb * lightAccum, color.a);",
+            "}",
+            "",
+            "void main() {",
+            "    vec4 color = texture2D(Sampler0, texCoord0) * vertexColor * ColorModulator;",
+            "#ifdef LIGHTING",
+            "    color = mixLight(normalize(vertexNormal), color);",
+            "#endif",
+            "    vec4 lightMapColor = texture2D(Sampler2, texCoord2);",
+            "    color.rgb *= lightMapColor.rgb;",
+            "    gl_FragColor = color;",
+            "}"
+    );
+
+    private static final Program NORMAL = new Program();
+    private static final Program LIGHTING = new Program("#define LIGHTING");
+
+    private Program program;
+
+    public void activate() {
+        // the current is use other program?
+        if (GL20.glGetInteger(GL20.GL_CURRENT_PROGRAM) != 0) {
+            return; // ignore.
+        }
+        program = getProgram();
+        program.use();
+    }
+
+    public void apply(AbstractGLUniformState uniforms) {
+        // ..
+    }
+
+    public void deactivate() {
+        if (program == null) {
+            return;
+        }
+        GL20.glUseProgram(0);
+        program = null;
+    }
+
+    private Program getProgram() {
+        if (GL11.glIsEnabled(GL11.GL_LIGHTING)) {
+            return LIGHTING;
+        }
+        return NORMAL;
+    }
+
+    private static class Program {
+
+
+        private int program = -1;
+
+        private final String[] defines;
+        private final HashMap<String, Integer> locations = new HashMap<>();
+
+        public Program(String... defines) {
+            this.defines = defines;
+        }
+
+        public void use() {
+            if (program > 0) {
+                GL20.glUseProgram(program);
+            } else {
+                program = createProgram();
+                applyColorModulator(OpenVector4f.ONE);
+            }
+        }
+
+        private int createProgram() {
+            var vertexShader = compile(GL20.GL_VERTEX_SHADER, VERTEX_SHADER);
+            var fragmentShader = compile(GL20.GL_FRAGMENT_SHADER, FRAGMENT_SHADER);
+            if (vertexShader == 0 || fragmentShader == 0) {
+                GL20.glDeleteShader(vertexShader);
+                GL20.glDeleteShader(fragmentShader);
+                throw new RuntimeException("Failed to create the compatibility shader");
+            }
+            var newProgram = GL20.glCreateProgram();
+            GL20.glAttachShader(newProgram, vertexShader);
+            GL20.glAttachShader(newProgram, fragmentShader);
+            GL20.glLinkProgram(newProgram);
+            GL20.glDetachShader(newProgram, vertexShader);
+            GL20.glDetachShader(newProgram, fragmentShader);
+            GL20.glDeleteShader(vertexShader);
+            GL20.glDeleteShader(fragmentShader);
+            if (GL20.glGetProgrami(newProgram, GL20.GL_LINK_STATUS) == 0) {
+                ModLog.error("Failed to link compatibility shader: {}", GL20.glGetProgramInfoLog(newProgram, 32768));
+                GL20.glDeleteProgram(newProgram);
+                throw new RuntimeException("Failed to create the compatibility shader");
+            }
+            GL20.glUseProgram(newProgram);
+            bindSampler(newProgram, "Sampler0", 0);
+            bindSampler(newProgram, "Sampler2", 2);
+            bindUniformLocation(newProgram, "ColorModulator");
+            return newProgram;
+        }
+
+        private int compile(int type, String source) {
+            var shader = GL20.glCreateShader(type);
+            if (defines.length > 0) {
+                source = source.replaceFirst("(#version\\s+\\d+)", "$1\n" + String.join("\n", defines));
+            }
+            GL20.glShaderSource(shader, process(type, source));
+            GL20.glCompileShader(shader);
+            if (GL20.glGetShaderi(shader, GL20.GL_COMPILE_STATUS) != 0) {
+                return shader;
+            }
+            ModLog.error("Failed to compile compatibility shader: {}", GL20.glGetShaderInfoLog(shader, 32768));
+            GL20.glDeleteShader(shader);
+            return 0;
+        }
+
+        private String process(int type, String source) {
+            if (type == GL20.GL_VERTEX_SHADER) {
+                return Shader.patch(source, "vanilla/vertex", 1);
+            }
+            if (type == GL20.GL_FRAGMENT_SHADER) {
+                return Shader.patch(source, "vanilla/fragment", 1);
+            }
+            return source;
+        }
+
+        private void bindSampler(int program, String name, int unit) {
+            var location = GL20.glGetUniformLocation(program, name);
+            if (location >= 0) {
+                GL20.glUniform1i(location, unit);
+            }
+        }
+
+        private void bindUniformLocation(int program, String name) {
+            var location = GL20.glGetUniformLocation(program, name);
+            if (location >= 0) {
+                locations.put(name, location);
+            }
+        }
+
+        private void applyColorModulator(OpenVector4f color) {
+            var location = locations.get("ColorModulator");
+            if (location >= 0) {
+                GL20.glUniform4f(location, color.x(), color.y(), color.z(), color.w());
+            }
+        }
+    }
+}
