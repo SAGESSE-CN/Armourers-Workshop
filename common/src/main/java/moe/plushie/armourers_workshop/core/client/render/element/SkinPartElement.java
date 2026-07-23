@@ -21,13 +21,12 @@ import moe.plushie.armourers_workshop.core.math.OpenPoseStack;
 import moe.plushie.armourers_workshop.core.skin.texture.SkinPaintScheme;
 import moe.plushie.armourers_workshop.core.utils.ObjectPool;
 import moe.plushie.armourers_workshop.core.utils.Objects;
-import moe.plushie.armourers_workshop.core.utils.ReferenceCounted;
+import moe.plushie.armourers_workshop.core.utils.Scheduler;
 import moe.plushie.armourers_workshop.init.ModDebugger;
 import moe.plushie.armourers_workshop.utils.RenderSystem;
 
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.Optional;
 import java.util.function.BiConsumer;
 
 @SuppressWarnings("unsed")
@@ -97,15 +96,12 @@ public class SkinPartElement implements IGraphicsElement {
     private void submitWithoutVBO(IGraphicsContext context) {
         var poseStack = new OpenPoseStack();
         part.quads().forEach((renderType, quads) -> {
-            context.draw(Lazy.create(renderType, (pose, builder) -> {
-                var smartTexture = Optional.ofNullable(SmartTexture.of(renderType));
-                smartTexture.ifPresent(ReferenceCounted::retain);
+            context.draw(LazyPass.create(renderType, (pose, builder) -> {
                 quads.forEach((transform, faces) -> {
                     poseStack.last().set(pose);
                     transform.apply(poseStack);
                     faces.forEach(face -> face.render(part, scheme, lightmap, overlay, poseStack, builder));
                 });
-                smartTexture.ifPresent(ReferenceCounted::release);
             }));
         });
     }
@@ -117,10 +113,19 @@ public class SkinPartElement implements IGraphicsElement {
     /**
      * Lazy the contents rendering.
      */
-    private interface Lazy extends IGraphicsElement, IGraphicsRenderable {
+    private interface LazyPass extends IGraphicsElement, IGraphicsRenderable {
 
-        static Lazy create(IRenderType renderType, BiConsumer<IPoseStack.Pose, IVertexConsumer> consumer) {
-            return new Lazy() {
+        static LazyPass create(IRenderType renderType, BiConsumer<IPoseStack.Pose, IVertexConsumer> consumer) {
+            // the render type is using smart texture?
+            var smartTexture = SmartTexture.of(renderType);
+            if (smartTexture != null) {
+                smartTexture.retain();
+                // we delay two ticks release to avoid frequent register and unregister.
+                Scheduler.CLIENT.addPostTickCallback(() -> {
+                    Scheduler.CLIENT.addPostTickCallback(smartTexture::release);
+                });
+            }
+            return new LazyPass() {
 
                 @Override
                 public void render(IPoseStack.Pose pose, IVertexConsumer builder) {

@@ -90,13 +90,13 @@ public class SkinContainerEvaluator {
             loadedSkins.put(identifier, info);
             SkinLoader.getInstance().loadSkinInfo(identifier, (skin, exception) -> {
                 info.update(skin, exception);
-                Scheduler.SERVER.next(this::infoDidChange);
+                Scheduler.SERVER.addNextTickCallback(this::infoDidChange);
             });
         });
         oldValue.forEach(it -> {
             // remove a skin and recompute.
             loadedSkins.remove(it);
-            Scheduler.SERVER.next(this::infoDidChange);
+            Scheduler.SERVER.addNextTickCallback(this::infoDidChange);
         });
     }
 
