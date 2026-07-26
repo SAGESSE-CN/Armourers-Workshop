@@ -626,6 +626,10 @@ public class BlockBenchExporter {
         public List<SkinAnimationData.Animator> exportAnimationAnimators(List<BlockBenchAnimator> animators) {
             var results = new ArrayList<SkinAnimationData.Animator>();
             for (var animator : animators) {
+                var name = animator.name();
+                if (name.isEmpty()) {
+                    continue; // we can't support empty animator name.
+                }
                 var keyframes = new ArrayList<SkinAnimationData.Keyframe>();
                 //animator.isRotationGlobal();
                 //animator.isQuaternionInterpolation();
@@ -638,7 +642,7 @@ public class BlockBenchExporter {
                         keyframes.add(new SkinAnimationData.Keyframe(time, channel, interpolation, points));
                     }
                 }
-                results.add(new SkinAnimationData.Animator(animator.name(), exportAnimationOptions(animator), keyframes));
+                results.add(new SkinAnimationData.Animator(name, exportAnimationOptions(animator), keyframes));
             }
             return results;
         }
