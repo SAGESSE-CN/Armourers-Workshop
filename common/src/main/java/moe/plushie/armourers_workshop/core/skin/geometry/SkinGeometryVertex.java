@@ -1,6 +1,7 @@
 package moe.plushie.armourers_workshop.core.skin.geometry;
 
 import moe.plushie.armourers_workshop.api.skin.geometry.ISkinGeometryVertex;
+import moe.plushie.armourers_workshop.api.skin.texture.ISkinPaintType;
 import moe.plushie.armourers_workshop.core.math.OpenVector2f;
 import moe.plushie.armourers_workshop.core.math.OpenVector3f;
 import moe.plushie.armourers_workshop.core.skin.texture.SkinPaintColor;
@@ -69,6 +70,11 @@ public class SkinGeometryVertex implements ISkinGeometryVertex {
 
         public int alpha() {
             return alpha;
+        }
+
+        @Override
+        public Color withPaintType(ISkinPaintType paintType) {
+            return new Color(super.withPaintType(paintType), alpha);
         }
 
         @Override

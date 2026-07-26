@@ -33,7 +33,7 @@ public class TextureAnimationController {
 
     public static TextureAnimationController of(IRenderType renderType) {
         // is default?
-        if (renderType == SkinRenderTypes.BLOCK_FACE_SOLID || renderType == SkinRenderTypes.BLOCK_FACE_LIGHTING || renderType == SkinRenderTypes.BLOCK_FACE_TRANSLUCENT || renderType == SkinRenderTypes.BLOCK_FACE_LIGHTING_TRANSLUCENT) {
+        if (renderType == SkinRenderTypes.BLOCK_FACE_SOLID || renderType == SkinRenderTypes.BLOCK_FACE_LIGHTING || renderType == SkinRenderTypes.BLOCK_FACE_TRANSLUCENT || renderType == SkinRenderTypes.BLOCK_FACE_LIGHTING_TRANSLUCENT || renderType == SkinRenderTypes.MESH_FACE_SOLID) {
             return DEFAULT;
         }
         // is custom?

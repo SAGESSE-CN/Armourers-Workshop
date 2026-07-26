@@ -213,7 +213,7 @@ public class SkinLoader {
 
     public void removeSkin(String identifier) {
         var entry = removeEntry(identifier);
-        Objects.ifPresent(entry, Entry::close);
+        Objects.ifPresent(entry, this::safeClose);
     }
 
     public synchronized void prepare(OpenDistributionType type) {
@@ -230,7 +230,7 @@ public class SkinLoader {
         ModLog.debug("stop skin loader");
         workQueue.pause();
         waiting.clear();
-        entries.values().forEach(Entry::close);
+        entries.values().forEach(this::safeClose);
         entries.clear();
         globalEntries.clear();
         setup(OpenDistributionType.CLIENT);
@@ -254,6 +254,14 @@ public class SkinLoader {
 
     private Entry removeEntry(String identifier) {
         return entries.remove(identifier);
+    }
+
+    private void safeClose(Entry entry) {
+        try {
+            entry.close();
+        } catch (Exception e) {
+            ModLog.error("can't close skin {}", entry.identifier, e);
+        }
     }
 
     private void resume(Entry entry, Method method) {

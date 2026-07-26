@@ -42,6 +42,8 @@ public abstract class SkinRenderTypes extends SkinRenderType {
     public static final IRenderType BLOCK_FACE_TRANSLUCENT = _blockFace(SkinVertexFormat.SKIN_BLOCK_FACE_TRANSLUCENT).texture(ModTextures.CUBE).blend(BlendMode.TRANSLUCENT).target(Target.TRANSLUCENT).group(Group.TRANSLUCENT_BLOCKS).ordinal(400).build("block_face_translucent");
     public static final IRenderType BLOCK_FACE_LIGHTING_TRANSLUCENT = _blockFace(SkinVertexFormat.SKIN_BLOCK_FACE_TRANSLUCENT_EMISSIVE).texture(ModTextures.LIGHTING_CUBE).blend(BlendMode.TRANSLUCENT).target(Target.TRANSLUCENT).group(Group.TRANSLUCENT_BLOCKS).ordinal(400).build("block_face_translucent_emissive");
 
+    public static final IRenderType MESH_FACE_SOLID = _blockFace(SkinVertexFormat.SKIN_MESH_FACE_SOLID).texture(ModTextures.CUBE).group(Group.SOLID_BLOCKS).ordinal(200).build("mesh_face_sold");
+
     private static final IRenderType LINES = _line(1).build("lines");
     private static final IRenderType LINE_STRIP = _builder(SkinVertexFormat.LINE_STRIP).lineWidth(1).build("line_strip");
 
@@ -58,6 +60,15 @@ public abstract class SkinRenderTypes extends SkinRenderType {
         }
         if (geometryType == SkinGeometryTypes.BLOCK_GLOWING) {
             return BLOCK_FACE_LIGHTING;
+        }
+        if (geometryType == SkinGeometryTypes.BLOCK_SOLID) {
+            return BLOCK_FACE_SOLID;
+        }
+        if (geometryType == SkinGeometryTypes.CUBE || geometryType == SkinGeometryTypes.CUBE_CULL) {
+            return BLOCK_FACE_SOLID;
+        }
+        if (geometryType == SkinGeometryTypes.MESH || geometryType == SkinGeometryTypes.MESH_CULL) {
+            return MESH_FACE_SOLID;
         }
         return BLOCK_FACE_SOLID;
     }

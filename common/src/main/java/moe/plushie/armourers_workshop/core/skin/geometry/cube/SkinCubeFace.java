@@ -23,12 +23,9 @@ public class SkinCubeFace extends SkinGeometryFace {
     private final SkinGeometryType type;
     private final SkinGeometryOptions options;
     private final OpenDirection direction;
-    private final SkinPaintColor paintColor;
+    private final SkinPaintColor color;
 
     private final OpenRectangle3f boundingBox;
-
-    // the rendering bounding box.
-    private final OpenRectangle3f renderBox;
 
     public SkinCubeFace(int id, SkinGeometryType type, SkinGeometryOptions options, OpenTransform3f transform, SkinTexturePos texturePos, OpenRectangle3f boundingBox, OpenDirection direction, SkinPaintColor color, int alpha) {
         this.id = id;
@@ -36,11 +33,10 @@ public class SkinCubeFace extends SkinGeometryFace {
         this.options = options;
         this.transform = transform;
         this.texturePos = texturePos;
-        this.paintColor = color;
+        this.color = color;
         this.alpha = alpha;
         this.direction = direction;
         this.boundingBox = boundingBox;
-        this.renderBox = resolve(boundingBox, 0.01f);
     }
 
     public static float[][] getBaseUVs(OpenDirection direction, int rot) {
@@ -61,7 +57,7 @@ public class SkinCubeFace extends SkinGeometryFace {
     }
 
     public SkinPaintColor color() {
-        return paintColor;
+        return color;
     }
 
     public int alpha() {
@@ -73,7 +69,7 @@ public class SkinCubeFace extends SkinGeometryFace {
     }
 
     public SkinPaintType paintType() {
-        return paintColor.paintType();
+        return color.paintType();
     }
 
     @Override
@@ -91,7 +87,7 @@ public class SkinCubeFace extends SkinGeometryFace {
         if (texturePos != null) {
             return texturePos;
         }
-        return paintColor.paintType().texturePos();
+        return color.paintType().texturePos();
     }
 
     @Override
@@ -106,7 +102,7 @@ public class SkinCubeFace extends SkinGeometryFace {
 
     @Override
     public boolean isVisible() {
-        return paintColor.paintType() != SkinPaintTypes.NONE;
+        return color.paintType() != SkinPaintTypes.NONE;
     }
 
     @Override
@@ -116,6 +112,7 @@ public class SkinCubeFace extends SkinGeometryFace {
         var textureRotation = getTextureRotation(texturePos);
 
         // https://learnopengl.com/Getting-started/Coordinate-Systems
+        var renderBox = getRenderBox();
         var x = renderBox.x();
         var y = renderBox.y();
         var z = renderBox.z();
@@ -125,10 +122,10 @@ public class SkinCubeFace extends SkinGeometryFace {
 
         var u = texturePos.u();
         var v = texturePos.v();
-        var s = texturePos.width() - 0.02f;
-        var t = texturePos.height() - 0.02f;
+        var s = texturePos.width();
+        var t = texturePos.height();
 
-        var color = new SkinGeometryVertex.Color(paintColor, alpha);
+        var color = new SkinGeometryVertex.Color(this.color, alpha);
         var vertices = new ArrayList<SkinGeometryVertex>();
 
         var vertexes = getBaseVertices(direction);
@@ -152,26 +149,26 @@ public class SkinCubeFace extends SkinGeometryFace {
         return 0;
     }
 
-    private OpenRectangle3f resolve(OpenRectangle3f value, float inflate) {
+    private OpenRectangle3f getRenderBox() {
         // we need inflate bounding box, which will avoid the size is zero.
         // when size is zero, it will cause the z-flight problems.
-        var x0 = value.minX();
-        var x1 = value.maxX();
+        var x0 = boundingBox.minX();
+        var x1 = boundingBox.maxX();
         if (Math.abs(x1 - x0) < 0.001f) {
-            x0 -= inflate;
-            x1 += inflate;
+            x0 -= 0.01f;
+            x1 += 0.01f;
         }
-        var y0 = value.minY();
-        var y1 = value.maxY();
+        var y0 = boundingBox.minY();
+        var y1 = boundingBox.maxY();
         if (Math.abs(y1 - y0) < 0.001f) {
-            y0 -= inflate;
-            y1 += inflate;
+            y0 -= 0.01f;
+            y1 += 0.01f;
         }
-        var z0 = value.minZ();
-        var z1 = value.maxZ();
+        var z0 = boundingBox.minZ();
+        var z1 = boundingBox.maxZ();
         if (Math.abs(z1 - z0) < 0.001f) {
-            z0 -= inflate;
-            z1 += inflate;
+            z0 -= 0.01f;
+            z1 += 0.01f;
         }
         return new OpenRectangle3f(x0, y0, z0, x1 - x0, y1 - y0, z1 - z0);
     }

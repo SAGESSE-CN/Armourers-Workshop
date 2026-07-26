@@ -3,6 +3,7 @@ package moe.plushie.armourers_workshop.core.skin.texture;
 import io.netty.buffer.ByteBuf;
 import moe.plushie.armourers_workshop.api.skin.texture.ISkinTextureData;
 import moe.plushie.armourers_workshop.core.utils.Collections;
+import moe.plushie.armourers_workshop.core.utils.FileUtils;
 import moe.plushie.armourers_workshop.core.utils.Objects;
 import moe.plushie.armourers_workshop.core.utils.OpenRandomSource;
 import moe.plushie.armourers_workshop.core.utils.StreamUtils;
@@ -16,7 +17,9 @@ public class SkinTextureData implements ISkinTextureData {
     public static final SkinTextureData EMPTY = new SkinTextureData("", 256, 256);
 
     private final int id = OpenRandomSource.nextInt(SkinTextureData.class);
+
     private final String name;
+    private final SkinPaintType paintType;
 
     private final float width;
     private final float height;
@@ -37,6 +40,7 @@ public class SkinTextureData implements ISkinTextureData {
         this.height = height;
         this.animation = animation;
         this.properties = properties;
+        this.paintType = resolvePaintType(name);
     }
 
     public void load(ByteBuf buf) {
@@ -95,6 +99,10 @@ public class SkinTextureData implements ISkinTextureData {
         return variants;
     }
 
+    public SkinPaintType paintType() {
+        return paintType;
+    }
+
     public String extension() {
         return "png";
     }
@@ -114,5 +122,17 @@ public class SkinTextureData implements ISkinTextureData {
     @Override
     public int hashCode() {
         return id;
+    }
+
+    /// Get the texture paint type from the name.
+    private SkinPaintType resolvePaintType(String name) {
+        if (!name.startsWith("armourers:")) {
+            return null;
+        }
+        var paintType = SkinPaintTypes.byName(FileUtils.removeExtension(name));
+        if (paintType == SkinPaintTypes.NONE) {
+            return null;
+        }
+        return paintType;
     }
 }

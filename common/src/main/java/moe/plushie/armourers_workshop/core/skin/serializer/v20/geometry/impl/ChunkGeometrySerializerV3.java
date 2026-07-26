@@ -49,7 +49,7 @@ public class ChunkGeometrySerializerV3 extends ChunkGeometrySerializer {
         private final ArrayList<SkinMeshFace> faces = new ArrayList<>();
         private final ArrayList<SkinGeometryVertex> vertices = new ArrayList<>();
 
-        private SkinTextureData textureProvider;
+        private SkinTextureData textureData;
 
         public Decoder(SkinGeometryType type, ChunkGeometrySlice slice) {
             this.type = type;
@@ -91,8 +91,8 @@ public class ChunkGeometrySerializerV3 extends ChunkGeometrySerializer {
         public SkinTexturePos texturePos() {
             if (slice.once(1)) {
                 vertices();
-                if (textureProvider != null) {
-                    texturePos = new SkinTexturePos(0, 0, 0, 0, textureProvider);
+                if (textureData != null) {
+                    texturePos = new SkinTexturePos(0, 0, 0, 0, textureData);
                 }
             }
             return texturePos;
@@ -173,7 +173,7 @@ public class ChunkGeometrySerializerV3 extends ChunkGeometrySerializer {
         protected OpenVector2f parseTextureCoords(OpenVector2f uv) {
             var ref = palette.readTexture(uv);
             if (ref != null) {
-                textureProvider = ref.data();
+                textureData = ref.data();
                 return ref.uv();
             }
             return OpenVector2f.ZERO;

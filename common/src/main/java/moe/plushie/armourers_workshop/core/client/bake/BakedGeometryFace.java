@@ -11,7 +11,9 @@ import moe.plushie.armourers_workshop.core.client.texture.PlayerSkinBakery;
 import moe.plushie.armourers_workshop.core.client.texture.SmartTextureManager;
 import moe.plushie.armourers_workshop.core.data.color.ColorDescriptor;
 import moe.plushie.armourers_workshop.core.math.OpenMath;
+import moe.plushie.armourers_workshop.core.math.OpenRectangle2f;
 import moe.plushie.armourers_workshop.core.math.OpenTransform3f;
+import moe.plushie.armourers_workshop.core.math.OpenVector2f;
 import moe.plushie.armourers_workshop.core.skin.geometry.SkinGeometryFace;
 import moe.plushie.armourers_workshop.core.skin.geometry.SkinGeometryType;
 import moe.plushie.armourers_workshop.core.skin.geometry.SkinGeometryTypes;
@@ -43,31 +45,41 @@ public class BakedGeometryFace {
     private final float priority;
     private final ITransform3f transform;
 
+    private final SkinGeometryType type;
+
+    private final SkinGeometryVertex.Color fillColor;
+    private final SkinTexturePos fillTexture;
+
+    private final OpenRectangle2f textureBox;
+
     private final List<? extends SkinGeometryVertex> vertices;
 
-    private final SkinGeometryVertex defaultVertex;
-    private final SkinTexturePos defaultTexturePos;
-
     public BakedGeometryFace(SkinGeometryFace geometryFace) {
+        this.type = geometryFace.type();
         this.priority = geometryFace.priority();
         this.transform = geometryFace.transform();
-        this.renderType = resolveRenderType(geometryFace);
-        this.renderTypeVariants = resolveRenderTypeVariants(geometryFace);
-        this.vertices = triangulation(geometryFace.vertices(), geometryFace.type());
-        this.defaultVertex = resolveDefaultVertex(vertices);
-        this.defaultTexturePos = geometryFace.texturePos();
+
+        this.textureBox = getTextureBox(geometryFace.vertices());
+
+        this.vertices = triangulation(geometryFace.vertices(), type);
+
+        this.fillTexture = createFillTexture(geometryFace.texturePos());
+        this.fillColor = createFillColor(geometryFace.texturePos(), vertices);
+
+        this.renderType = createRenderType(type, fillTexture);
+        this.renderTypeVariants = createRenderTypeVariants(type, fillTexture);
+
     }
 
     public void render(BakedSkinPart part, SkinPaintScheme scheme, int lightmap, int overlay, IPoseStack poseStack, IVertexConsumer builder) {
         // when not any vertices found, we will ignore the rendering of this face.
-        if (defaultVertex == null) {
+        if (fillColor == null) {
             return;
         }
 
         // we need to blend the vertex color.
         // NOTE: we assume that all vertices use the same color, but in fact every vertex needs to be blended.
-        var vertexColor = defaultVertex.color();
-        var resolvedColor = resolveColor(vertexColor, scheme, part.colorInfo(), part.type(), 0);
+        var resolvedColor = resolveColor(fillColor, scheme, part.colorInfo(), part.type(), 0);
         if (resolvedColor.paintType() == SkinPaintTypes.NONE) {
             return;
         }
@@ -80,24 +92,23 @@ public class BakedGeometryFace {
         var pose = poseStack.last();
 
         // for dye color, we need to relocation to final color by the offset(x, 0).
-        var u = resolveTextureOffset(vertexColor.paintType(), resolvedColor.paintType());
-        var v = 0.0f;
+        var offset = resolveTextureOffset(fillColor.paintType(), resolvedColor.paintType());
 
-        var n = defaultTexturePos.totalWidth();
-        var m = defaultTexturePos.totalHeight();
+        var n = 1.0f / fillTexture.totalWidth();
+        var m = 1.0f / fillTexture.totalHeight();
 
         var r = resolvedColor.red();
         var g = resolvedColor.green();
         var b = resolvedColor.blue();
-        var a = vertexColor.alpha();
+        var a = fillColor.alpha();
 
         for (var vertex : vertices) {
             var position = vertex.position();
             var normal = vertex.normal();
-            var textureCoords = vertex.textureCoords();
+            var textureCoords = remap(vertex.textureCoords());
             builder.vertex(pose, position.x(), position.y(), position.z())
                     .color(r, g, b, a)
-                    .uv((u + textureCoords.x()) / n, (v + textureCoords.y()) / m)
+                    .uv((offset.x() + textureCoords.x()) * n, (offset.y() + textureCoords.y()) * m)
                     .overlayCoords(overlay)
                     .uv2(lightmap)
                     .normal(pose, normal.x(), normal.y(), normal.z())
@@ -125,10 +136,12 @@ public class BakedGeometryFace {
         return destination.withColor(r, g, b);
     }
 
-
     private SkinPaintColor resolveTextureColor(PlayerSkin texture, SkinPartType partType) {
         var skin = PlayerSkinBakery.getInstance().loadSkin(texture);
-        if (skin != null && defaultVertex instanceof SkinCubeVertex cubeVertex) {
+        if (skin == null || vertices.isEmpty()) {
+            return null;
+        }
+        if (vertices.get(0) instanceof SkinCubeVertex cubeVertex) {
             var shape = cubeVertex.boundingBox();
             var direction = cubeVertex.direction();
             var x = (int) shape.x();
@@ -142,13 +155,13 @@ public class BakedGeometryFace {
         return null;
     }
 
-    private float resolveTextureOffset(SkinPaintType from, SkinPaintType to) {
+    private OpenVector2f resolveTextureOffset(SkinPaintType from, SkinPaintType to) {
         var fromTexturePos = from.texturePos();
         var toTexturePos = to.texturePos();
         if (fromTexturePos != toTexturePos) {
-            return toTexturePos.u() - fromTexturePos.u();
+            return new OpenVector2f(toTexturePos.u() - fromTexturePos.u(), 0);
         }
-        return 0;
+        return OpenVector2f.ZERO;
     }
 
     private SkinPaintColor resolveColor(SkinPaintColor paintColor, SkinPaintScheme scheme, ColorDescriptor descriptor, SkinPartType partType, int deep) {
@@ -180,6 +193,27 @@ public class BakedGeometryFace {
         return paintColor;
     }
 
+
+    private OpenVector2f remap(OpenVector2f pos) {
+        var epsilon = 0.01f;
+
+        var tx = pos.x();
+        if (tx < textureBox.midX()) {
+            tx += epsilon;
+        } else {
+            tx -= epsilon;
+        }
+
+        var ty = pos.y();
+        if (ty < textureBox.midY()) {
+            ty += epsilon;
+        } else {
+            ty -= epsilon;
+        }
+
+        return new OpenVector2f(tx, ty);
+    }
+
     private List<? extends SkinGeometryVertex> triangulation(Iterable<? extends SkinGeometryVertex> verticesIn, SkinGeometryType geometryType) {
         var vertices = Collections.newList(verticesIn);
         if (geometryType != SkinGeometryTypes.MESH && geometryType != SkinGeometryTypes.MESH_CULL) {
@@ -201,42 +235,70 @@ public class BakedGeometryFace {
         };
     }
 
-    private SkinGeometryVertex resolveDefaultVertex(List<? extends SkinGeometryVertex> vertices) {
-        if (!vertices.isEmpty()) {
-            return vertices.get(0);
+    private SkinTexturePos createFillTexture(SkinTexturePos texturePos) {
+        var paintType = Objects.flatMap(texturePos.data(), SkinTextureData::paintType);
+        if (paintType != null) {
+            return SkinTexturePos.DEFAULT;
         }
-        return null;
+        return texturePos;
     }
 
-    private IRenderType resolveRenderType(SkinGeometryFace face) {
-        var parent = Objects.flatMap(face.texturePos(), SkinTexturePos::data);
-        if (parent != null) {
-            return resolveRenderType(parent, face.type());
+    private SkinGeometryVertex.Color createFillColor(SkinTexturePos texturePos, List<? extends SkinGeometryVertex> vertices) {
+        if (vertices.isEmpty()) {
+            return null;
         }
-        return SkinRenderTypes.geometry(face.type());
+        var fillColor = vertices.get(0).color();
+        var paintType = Objects.flatMap(texturePos.data(), SkinTextureData::paintType);
+        if (paintType != null) {
+            return fillColor.withPaintType(paintType);
+        }
+        return fillColor;
     }
 
-    private Collection<IRenderType> resolveRenderTypeVariants(SkinGeometryFace face) {
-        var parent = Objects.flatMap(face.texturePos(), SkinTexturePos::data);
-        if (parent == null) {
+    private IRenderType createRenderType(SkinGeometryType geometryType, SkinTexturePos texturePos) {
+        var textureData = Objects.flatMap(texturePos, SkinTexturePos::data);
+        if (textureData != null) {
+            return createRenderType(geometryType, textureData);
+        }
+        return SkinRenderTypes.geometry(geometryType);
+    }
+
+    private Collection<IRenderType> createRenderTypeVariants(SkinGeometryType geometryType, SkinTexturePos texturePos) {
+        var textureData = Objects.flatMap(texturePos, SkinTexturePos::data);
+        if (textureData == null) {
             return null;
         }
         var renderTypes = new ArrayList<IRenderType>();
-        for (var variant : parent.variants()) {
+        for (var variant : textureData.variants()) {
             var properties = variant.properties();
             if (properties.isNormal() || properties.isSpecular()) {
                 continue; // normal/specular map, only use from shader mod.
             }
-            renderTypes.add(resolveRenderType(variant, face.type()));
+            renderTypes.add(createRenderType(geometryType, variant));
         }
         return renderTypes;
     }
 
-    private IRenderType resolveRenderType(SkinTextureData textureData, SkinGeometryType geometryType) {
+    private IRenderType createRenderType(SkinGeometryType geometryType, SkinTextureData textureData) {
         return SmartTextureManager.getInstance().register(textureData).create(it -> {
             var key = it.location();
             return SkinRenderTypes.geometry(geometryType, key, it.isTranslucent(), it.isEmissive());
         });
+    }
+
+    private OpenRectangle2f getTextureBox(Iterable<? extends SkinGeometryVertex> vertices) {
+        var x0 = Float.MAX_VALUE;
+        var y0 = Float.MAX_VALUE;
+        var x1 = Float.MIN_VALUE;
+        var y1 = Float.MIN_VALUE;
+        for (var vertex : vertices) {
+            var pos = vertex.textureCoords();
+            x0 = Math.min(x0, pos.x());
+            y0 = Math.min(y0, pos.y());
+            x1 = Math.max(x1, pos.x());
+            y1 = Math.max(y1, pos.y());
+        }
+        return new OpenRectangle2f(x0, y0, x1 - x0, y1 - y0);
     }
 
     public float priority() {
@@ -260,9 +322,6 @@ public class BakedGeometryFace {
     }
 
     public SkinPaintColor defaultColor() {
-        if (defaultVertex != null) {
-            return defaultVertex.color();
-        }
-        return null;
+        return fillColor;
     }
 }

@@ -41,10 +41,10 @@ public class SmartTexture extends ReferenceCounted {
     private final Set<IRenderType> binding = new HashSet<>();
 
     protected SmartTexture(SkinTextureData textureData) {
-        this.location = ModConstants.key("textures/dynamic/" + id + "." + textureData.extension());
+        this.location = resolveLocation(textureData);
         this.properties = textureData.properties();
-        this.buffers = resolveTextureBuffers(location, textureData);
-        this.animationController = new TextureAnimationController(textureData.animation());
+        this.animationController = resolveAnimationController(textureData);
+        this.buffers = resolveBuffers(location, textureData);
     }
 
     @Nullable
@@ -118,7 +118,11 @@ public class SmartTexture extends ReferenceCounted {
         return location.toString();
     }
 
-    private Map<OpenResourceKey, ByteBuf> resolveTextureBuffers(OpenResourceKey key, SkinTextureData textureData) {
+    private OpenResourceKey resolveLocation(SkinTextureData textureData) {
+        return ModConstants.key("textures/dynamic/" + id + "." + textureData.extension());
+    }
+
+    private Map<OpenResourceKey, ByteBuf> resolveBuffers(OpenResourceKey key, SkinTextureData textureData) {
         var path = FileUtils.removeExtension(key.path());
         var builder = new TextureBufferBuilder(textureData.properties());
         builder.addData(key, textureData);
@@ -131,6 +135,10 @@ public class SmartTexture extends ReferenceCounted {
             }
         }
         return builder.build();
+    }
+
+    private TextureAnimationController resolveAnimationController(SkinTextureData textureData) {
+        return new TextureAnimationController(textureData.animation());
     }
 
     private static class TextureBufferBuilder {
